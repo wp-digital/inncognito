@@ -1,0 +1,29 @@
+{
+  "name": "innocode-digital/wp-inncognito",
+  "version": "1.0.0",
+  "type": "wordpress-muplugin",
+  "description": "Login and Registration (SSO) with user's AWS Cognito account.",
+  "license": "GPL-2.0+",
+  "authors": [
+    {
+      "name": "Innocode",
+      "email": "post@innocode.no",
+      "homepage": "https://innocode.com/"
+    },
+    {
+      "name": "Viktor Kuliebiakin",
+      "email": "kuliebiakin@gmail.com"
+    }
+  ],
+  "require": {
+    "php": ">=7.1",
+    "ext-json": "*",
+    "firebase/php-jwt": "^6.0",
+    "paragonie/sodium_compat": "^1.17"
+  },
+  "autoload": {
+    "psr-4": {
+      "Innocode\\Cognito\\": "src/"
+    }
+  }
+}
