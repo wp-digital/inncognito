@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Inncognito
- * Description: Login and Registration (SSO) with user's AWS Cognito account.
+ * Description: Login and Registration with user's AWS Cognito account.
  * Version: 1.0.0
  * Author: Innocode
  * Author URI: https://innocode.com

@@ -2,7 +2,7 @@
 
 ### Description
 
-Login and Registration (SSO) with user's AWS Cognito account.
+Login and Registration with user's AWS Cognito account.
 
 ### Install
 

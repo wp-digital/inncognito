@@ -2,7 +2,18 @@
   "name": "innocode-digital/wp-inncognito",
   "version": "1.0.0",
   "type": "wordpress-muplugin",
-  "description": "Login and Registration (SSO) with user's AWS Cognito account.",
+  "description": "Login and Registration with user's AWS Cognito account.",
+  "keywords": [
+    "wordpress",
+    "wp",
+    "plugin",
+    "mu-plugin",
+    "aws",
+    "cognito",
+    "login",
+    "registration",
+    "oauth2"
+  ],
   "license": "GPL-2.0+",
   "authors": [
     {
