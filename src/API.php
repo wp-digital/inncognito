@@ -89,6 +89,7 @@ class API
         return wp_remote_post(
             $this->endpoint( 'oauth2/token' ),
             wp_parse_args( $args, [
+                'timeout'   => 30,
                 'headers'   => [
                     'Content-Type'  => 'application/x-www-form-urlencoded',
                     'Authorization' => $this->get_authorization_header(),
