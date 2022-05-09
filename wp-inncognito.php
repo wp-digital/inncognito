@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Inncognito
  * Description: Login and Registration with user's AWS Cognito account.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Innocode
  * Author URI: https://innocode.com
  * Tested up to: 5.9.3

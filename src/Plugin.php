@@ -137,6 +137,7 @@ final class Plugin
         add_action( 'template_redirect', [ $this, 'handle_request' ] );
 
         add_filter( 'authenticate', [ $this, 'force_cognito' ], PHP_INT_MAX, 2 );
+        add_filter( 'show_password_fields', [ $this, 'should_show_password_fields' ], 10, 2 );
     }
 
     /**
@@ -294,6 +295,20 @@ final class Plugin
 
         wp_redirect( User::admin_url( $user->ID ) );
         exit;
+    }
+
+    /**
+     * @param bool    $should_show
+     * @param WP_User $user
+     * @return bool
+     */
+    public function should_show_password_fields( bool $should_show, WP_User $user ) : bool
+    {
+        if ( $this->use_force_cognito() && User::is_inncognito( $user->ID ) ) {
+            return false;
+        }
+
+        return $should_show;
     }
 
     /**
