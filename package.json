@@ -1,0 +1,43 @@
+{
+  "name": "wp-inncognito",
+  "version": "1.2.0",
+  "description": "Login and Registration with user's AWS Cognito account.",
+  "scripts": {
+    "build": "uglifyjs ./public/js/profile.js -c -o ./public/js/profile.min.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/innocode-digital/inncognito.git"
+  },
+  "keywords": [
+    "wordpress",
+    "wp",
+    "plugin",
+    "mu-plugin",
+    "aws",
+    "cognito",
+    "login",
+    "registration",
+    "oauth2"
+  ],
+  "author": {
+    "name": "Innocode",
+    "email": "post@innocode.no",
+    "homepage": "https://innocode.com/"
+  },
+  "contributors": [
+    {
+      "name": "Viktor Kuliebiakin",
+      "email": "kuliebiakin@gmail.com"
+    }
+  ],
+  "license": "GPL-2.0-or-later",
+  "bugs": {
+    "url": "https://github.com/innocode-digital/inncognito/issues"
+  },
+  "homepage": "https://github.com/innocode-digital/inncognito#readme",
+  "devDependencies": {
+    "uglify-js": "^3.15.5"
+  }
+}

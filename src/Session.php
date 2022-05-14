@@ -36,21 +36,20 @@ final class Session
     }
 
     /**
+     * @param string $cookie_path
+     * @return void
+     */
+    public function set_cookie_path( string $cookie_path ) : void
+    {
+        $this->cookie_path = $cookie_path;
+    }
+
+    /**
      * @return string
      */
     public function get_cookie_path() : string
     {
         return $this->cookie_path;
-    }
-
-    /**
-     * @return void
-     */
-    public function init() : void
-    {
-        list( $cookie_path ) = explode( '?', wp_unslash( $_SERVER['REQUEST_URI'] ) );
-
-        $this->cookie_path = $cookie_path;
     }
 
     /**

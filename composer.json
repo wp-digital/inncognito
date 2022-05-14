@@ -1,6 +1,6 @@
 {
   "name": "innocode-digital/wp-inncognito",
-  "version": "1.0.1",
+  "version": "1.2.0",
   "type": "wordpress-muplugin",
   "description": "Login and Registration with user's AWS Cognito account.",
   "keywords": [
@@ -30,7 +30,9 @@
     "php": ">=7.1",
     "ext-json": "*",
     "firebase/php-jwt": "^6.0",
-    "paragonie/sodium_compat": "^1.17"
+    "paragonie/sodium_compat": "^1.17",
+    "endroid/qr-code": "^4.3",
+    "aws/aws-sdk-php": "^3.222"
   },
   "autoload": {
     "psr-4": {

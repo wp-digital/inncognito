@@ -64,17 +64,19 @@ class API
     }
 
     /**
-     * @param string $redirect_uri
-     * @param string $state
+     * @param string      $redirect_uri
+     * @param string      $state
+     * @param string|null $scope
      * @return string
      */
-    public function login_url( string $redirect_uri, string $state ) : string
+    public function login_url( string $redirect_uri, string $state, string $scope = null ) : string
     {
         return add_query_arg( [
             'response_type' => 'code',
             'client_id'     => $this->get_client_id(),
             'redirect_uri'  => rawurlencode( $redirect_uri ),
             'state'         => $state,
+            'scope'         => $scope,
         ], $this->endpoint( 'login' ) );
     }
 
