@@ -17,11 +17,7 @@ final class User
 
         if ( isset( $data['preferred_username'] ) ) {
             $username = $data['preferred_username'];
-        } elseif ( isset( $data['username'] ) ) {
-            $username = $data['username'];
-        }
-
-        if ( ! $username && isset( $data['email'] ) ) {
+        } elseif ( isset( $data['email'] ) ) {
             $username = $data['email'];
         }
 
@@ -85,6 +81,10 @@ final class User
 
         User::inncognitize( $user_id );
 
+        if ( isset( $jwt['cognito:username'] ) ) {
+            User::innconnect( $user_id, $jwt['cognito:username'] );
+        }
+
         if ( $is_super_admin ) {
             grant_super_admin( $user_id );
         }
@@ -139,6 +139,15 @@ final class User
 
     /**
      * @param int $user_id
+     * @return void
+     */
+    public static function inncognitize( int $user_id ) : void
+    {
+        update_user_meta( $user_id, 'inncognito', current_time( 'mysql' ) );
+    }
+
+    /**
+     * @param int $user_id
      * @return bool
      */
     public static function is_inncognito( int $user_id ) : bool
@@ -147,12 +156,54 @@ final class User
     }
 
     /**
-     * @param int $user_id
+     * @param int    $user_id
+     * @param string $username
      * @return void
      */
-    public static function inncognitize( int $user_id ) : void
+    public static function innconnect( int $user_id, string $username ) : void
     {
-        update_user_meta( $user_id, 'inncognito', current_time( 'mysql' ) );
+        update_user_meta( $user_id, 'inncognito_username', $username );
+    }
+
+    /**
+     * @param int $user_id
+     * @return string
+     */
+    public static function get_innconnection( int $user_id ) : string
+    {
+        return (string) get_user_meta( $user_id, 'inncognito_username', true );
+    }
+
+    /**
+     * @param int    $user_id
+     * @param string $token
+     * @param int    $expiration
+     * @return void
+     */
+    public static function update_token( int $user_id, string $token, int $expiration ) : void
+    {
+        update_user_meta( $user_id, 'inncognito_token', "$expiration|$token" );
+    }
+
+    /**
+     * @param int $user_id
+     * @return string|null
+     */
+    public static function get_token( int $user_id ) : ?string
+    {
+        $token = get_user_meta( $user_id, 'inncognito_token', true );
+
+        if ( ! $token || false === strpos( $token, '|' ) ) {
+            return null;
+        }
+
+        list( $expiration, $token ) = explode( '|', $token, 2 );
+
+        if ( $expiration < time() ) {
+            return null;
+        }
+
+        return $token;
     }
 
     /**
@@ -174,5 +225,38 @@ final class User
         }
 
         return admin_url();
+    }
+
+    /**
+     * @return void
+     */
+    public static function clear_db() : void
+    {
+        global $wpdb;
+
+        foreach ( [
+            'inncognito',
+            'inncognito_username',
+            'inncognito_token',
+        ] as $key ) {
+            $wpdb->delete( $wpdb->usermeta, [ 'meta_key' => $key ], [ '%s' ] );
+        }
+    }
+
+    /**
+     * @return void
+     */
+    public static function flush_expired_tokens() : void
+    {
+        global $wpdb;
+
+        $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM $wpdb->usermeta
+                WHERE meta_key = 'inncognito_token'
+                AND meta_value < %d",
+                time()
+            )
+        );
     }
 }

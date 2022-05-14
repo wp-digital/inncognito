@@ -9,6 +9,10 @@ use WP_Error;
 final class State
 {
     /**
+     * @var string
+     */
+    private $action;
+    /**
      * @var string|null
      */
     private $redirect_to;
@@ -20,6 +24,23 @@ final class State
      * @var string|null
      */
     private $key;
+
+    /**
+     * @param string $action
+     * @return void
+     */
+    public function set_action( string $action ) : void
+    {
+        $this->action = $action;
+    }
+
+    /**
+     * @return string
+     */
+    public function get_action() : string
+    {
+        return $this->action;
+    }
 
     /**
      * @param string $redirect_to
@@ -79,6 +100,7 @@ final class State
     {
         try {
             $encoded = JWT::jsonEncode( [
+                'action'      => $this->get_action(),
                 'redirect_to' => $this->get_redirect_to(),
                 'expiration'  => $this->get_expiration(),
                 'hash'        => wp_hash_password( $this->get_key() ),
@@ -112,6 +134,10 @@ final class State
         }
 
         $state = new self();
+
+        if ( isset( $data['action'] ) ) {
+            $state->set_action( $data['action'] );
+        }
 
         if ( isset( $data['redirect_to'] ) ) {
             $state->set_redirect_to( $data['redirect_to'] );

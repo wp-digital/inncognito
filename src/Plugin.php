@@ -2,11 +2,13 @@
 
 namespace Innocode\Cognito;
 
+use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
 use Exception;
 use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
 use WP_Error;
 use WP_User;
+use stdClass;
 
 final class Plugin
 {
@@ -20,6 +22,10 @@ final class Plugin
      * @var Query
      */
     private $query;
+    /**
+     * @var Controller
+     */
+    private $controller;
     /**
      * @var JWKS
      */
@@ -36,6 +42,14 @@ final class Plugin
      * @var bool
      */
     private $registration_allowed = true;
+    /**
+     * @var CognitoIdentityProviderClient
+     */
+    private $cognito_identity_provider_client;
+    /**
+     * @var RESTController
+     */
+    private $rest_controller;
 
     /**
      * @param string $domain
@@ -58,8 +72,10 @@ final class Plugin
 
         $this->api = new API( $domain, $client_id, $client_secret );
         $this->query = new Query();
+        $this->controller = new Controller();
         $this->jwks = new JWKS( $region, $user_pool_id );
         $this->session = new Session();
+        $this->rest_controller = new RESTController();
     }
 
     /**
@@ -76,6 +92,14 @@ final class Plugin
     public function get_query() : Query
     {
         return $this->query;
+    }
+
+    /**
+     * @return Controller
+     */
+    public function get_controller() : Controller
+    {
+        return $this->controller;
     }
 
     /**
@@ -125,6 +149,35 @@ final class Plugin
     }
 
     /**
+     * @return CognitoIdentityProviderClient
+     */
+    public function get_cognito_identity_provider_client() : CognitoIdentityProviderClient
+    {
+        if ( null === $this->cognito_identity_provider_client ) {
+            $api = $this->get_api();
+            $jwks = $this->get_jwks();
+            $this->cognito_identity_provider_client = new CognitoIdentityProviderClient( [
+                'credentials' => [
+                    'key'    => $api->get_client_id(),
+                    'secret' => $api->get_client_secret(),
+                ],
+                'region'  => $jwks->get_region(),
+                'version' => 'latest',
+            ] );
+        }
+
+        return $this->cognito_identity_provider_client;
+    }
+
+    /**
+     * @return RESTController
+     */
+    public function get_rest_controller() : RESTController
+    {
+        return $this->rest_controller;
+    }
+
+    /**
      * @return void
      */
     public function run() : void
@@ -134,19 +187,45 @@ final class Plugin
 
         add_action( 'init', [ $this->get_jwks(), 'populate' ] );
         add_action( 'init', [ $this, 'add_rewrite_endpoints' ] );
+        add_action( 'rest_api_init', [ $this->get_rest_controller(), 'register_routes' ] );
         add_action( 'template_redirect', [ $this, 'handle_request' ] );
+        add_action( 'delete_expired_transients', [ User::class, 'flush_expired_tokens' ] );
 
         add_filter( 'authenticate', [ $this, 'force_cognito' ], PHP_INT_MAX, 2 );
+        add_action( 'validate_password_reset', [ $this, 'disable_password_reset'], PHP_INT_MAX, 2 );
+
         add_filter( 'show_password_fields', [ $this, 'should_show_password_fields' ], 10, 2 );
+        add_action( 'show_user_profile', [ $this, 'show_profile' ] );
+        add_action( 'user_profile_update_errors', [ $this, 'update_mfa' ], 10, 3 );
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
     }
 
     /**
-     * @param string $key
+     * @param string      $key
+     * @param string|null $scope
      * @return string
      */
-    public function login_url( string $key ) : string
+    public function api_url( string $key, string $scope = null ) : string
     {
-        return $this->get_api()->login_url( $this->get_query()->url(), $key );
+        return $this->get_api()->login_url( $this->login_url(), $key, $scope );
+    }
+
+    /**
+     * @param string|null $redirect_to
+     * @return string
+     */
+    public function login_url( string $redirect_to = null ) : string
+    {
+        return $this->get_query()->url( '/', $redirect_to );
+    }
+
+    /**
+     * @param string|null $redirect_to
+     * @return string
+     */
+    public function token_url( string $redirect_to = null ) : string
+    {
+        return $this->get_query()->url( 'token', $redirect_to );
     }
 
     /**
@@ -164,59 +243,37 @@ final class Plugin
     {
         $query = $this->get_query();
 
-        if ( ! $query->is_root() ) {
-            return;
-        }
-
-        if ( is_user_logged_in() ) {
-            wp_redirect( User::admin_url( get_current_user_id() ) );
-            exit;
-        }
-
-        nocache_headers();
-
-        $jwks = $this->get_jwks();
-
-        if ( ! $jwks->exists() ) {
-            error_log( 'Missing JWKS' );
-
+        if ( ! $query->exists() ) {
             return;
         }
 
         $query->parse();
         $code = $query->get_var( 'code' );
 
+        $controller = $this->get_controller();
+
         $session = $this->get_session();
-        $session->init();
+        $session->set_cookie_path( $query->path() );
 
         if ( null === $code ) {
-            $state = new State();
+            $controller->index( $this );
 
-            if ( null !== ( $redirect_to = $query->get_var( 'redirect_to' ) ) ) {
-                $state->set_redirect_to( $redirect_to );
-            }
-
-            if ( null === ( $key = $session->start( $state ) ) ) {
-                return;
-            }
-
-            wp_redirect( $this->login_url( $key ) );
-            exit;
+            return;
         }
 
         $key = $query->get_var( 'state' );
 
         if ( null === $key ) {
-            wp_die( __( 'Empty state.', 'inncognito' ), __( 'Inncognito', 'inncognito' ), 400 );
+            Helpers::error_die( __( 'Empty state.', 'inncognito' ) );
         }
 
         $state = $session->stop( $key );
 
         if ( is_wp_error( $state ) ) {
-            wp_die( $state->get_error_message(), __( 'Inncognito', 'inncognito' ), 401 );
+            Helpers::error_die( $state->get_error_message() );
         }
 
-        $response = $this->get_api()->token( $code, $query->url() );
+        $response = $this->get_api()->token( $code, $this->login_url() );
 
         if ( is_wp_error( $response ) ) {
             Helpers::log_wp_error( $response );
@@ -232,126 +289,76 @@ final class Plugin
 
         $body = json_decode( wp_remote_retrieve_body( $response ), true );
 
-        if ( ! isset( $body['id_token'] ) ) {
-            error_log( 'Missing ID token' );
+        $action = $state->get_action();
 
-            return;
+        if ( $action === '' ) {
+            $controller->login( $this, $body, $state );
+        } elseif ( $action == 'token' ) {
+            $controller->token( $this, $body, $state );
         }
-
-        try {
-            $jwt = Helpers::object_to_array( JWT::decode( $body['id_token'], JWK::parseKeySet( $jwks() ) ) );
-        } catch ( Exception $exception ) {
-            error_log( $exception->getMessage() );
-
-            return;
-        }
-
-        $jwt = $this->verify_jwt_claims( $jwt );
-
-        if ( is_wp_error( $jwt ) ) {
-            Helpers::log_wp_error( $jwt );
-
-            return;
-        }
-
-        $user_id = email_exists( $jwt['email'] );
-
-        if ( $user_id ) {
-            if ( ! User::is_inncognito( $user_id ) ) {
-                User::inncognitize( $user_id );
-            }
-        } elseif ( $this->allow_registration() ) {
-            $user_id = User::create_from_jwt( $jwt );
-
-            if ( is_wp_error( $user_id ) ) {
-                Helpers::log_wp_error( $user_id );
-
-                return;
-            }
-        } else {
-            wp_die( __( 'Registration is disabled.', 'inncognito' ), __( 'Inncognito', 'inncognito' ), 403 );
-        }
-
-        $is_forced = $this->use_force_cognito( false );
-        $user = User::no_password_sign_in( $jwt['email'] );
-        $this->use_force_cognito( $is_forced );
-
-        if ( is_wp_error( $user ) ) {
-            Helpers::log_wp_error( $user );
-
-            return;
-        }
-
-        if (
-            null !== ( $redirect_to = $state->get_redirect_to() ) &&
-            ! in_array( $redirect_to, [
-                'wp-admin/',
-                admin_url(),
-            ], true )
-        ) {
-            wp_safe_redirect( $redirect_to );
-            exit;
-        }
-
-        wp_redirect( User::admin_url( $user->ID ) );
-        exit;
     }
 
     /**
-     * @param bool    $should_show
-     * @param WP_User $user
-     * @return bool
+     * @param array  $body
+     * @param string $use
+     * @return array
+     * @throws Exception
      */
-    public function should_show_password_fields( bool $should_show, WP_User $user ) : bool
+    public function retrieve_jwt( array $body, string $use ) : array
     {
-        if ( $this->use_force_cognito() && User::is_inncognito( $user->ID ) ) {
-            return false;
+        $key = "{$use}_token";
+
+        if ( ! isset( $body[ $key ] ) ) {
+            throw new Exception( sprintf( 'Missing %s token.', $use ) );
         }
 
-        return $should_show;
+        $jwks = $this->get_jwks();
+
+        if ( ! $jwks->exists() ) {
+            throw new Exception( 'Missing JWKS.' );
+        }
+
+        $jwt = Helpers::object_to_array( JWT::decode( $body[ $key ], JWK::parseKeySet( $jwks() ) ) );
+
+        return $this->verify_jwt_claims( $jwt, $use );
     }
 
     /**
      * @link https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-verifying-a-jwt.html
      *
-     * @param array $jwt
-     * @return array|WP_Error
+     * @param array  $jwt
+     * @param string $token_use
+     * @return array
+     * @throws Exception
      */
-    public function verify_jwt_claims( array $jwt )
+    public function verify_jwt_claims( array $jwt, string $token_use ) : array
     {
-        if ( ! isset( $jwt['aud'] ) || $jwt['aud'] != $this->get_api()->get_client_id() ) {
-            return new WP_Error(
-                'inncognito_invalid_token_aud',
-                __( 'Token was not issued for this audience.', 'inncognito' )
-            );
+        if ( $token_use == 'id' && (
+            ! isset( $jwt['aud'] ) || $jwt['aud'] != $this->get_api()->get_client_id()
+        ) ) {
+            throw new Exception( 'Token was not issued for this audience.' );
+        } elseif ( $token_use == 'access' && (
+            ! isset( $jwt['client_id'] ) || $jwt['client_id'] != $this->get_api()->get_client_id()
+        ) ) {
+            throw new Exception( 'Token was not issued for this client id.' );
         }
 
         if ( ! isset( $jwt['iss'] ) || $jwt['iss'] != $this->get_jwks()->iss() ) {
-            return new WP_Error(
-                'inncognito_invalid_token_iss',
-                __( 'Token was not issued by this issuer.', 'inncognito' )
-            );
+            throw new Exception( 'Token was not issued by this issuer.' );
         }
 
-        if ( ! isset( $jwt['token_use'] ) || ! in_array( $jwt['token_use'], [ 'access', 'id' ], true ) ) {
-            return new WP_Error(
-                'inncognito_invalid_token_use',
-                __( 'Token was not issued for this use case.', 'inncognito' )
-            );
+        if ( ! isset( $jwt['token_use'] ) || $jwt['token_use'] != $token_use ) {
+            throw new Exception( 'Token was not issued for this use case.' );
         }
 
-        if ( ! isset( $jwt['email'] ) || ! is_email( $jwt['email'] ) ) {
-            return new WP_Error(
-                'inncognito_invalid_email',
-                __( 'Invalid email.', 'inncognito' )
-            );
-        }
+        if ( $token_use == 'id' ) {
+            if ( ! isset( $jwt['email'] ) || ! is_email( $jwt['email'] ) ) {
+                throw new Exception( 'Token has an invalid email.' );
+            }
 
-        if ( empty( $jwt['email_verified'] ) ) {
-            return new WP_Error(
-                'inncognito_unverified_email',
-                __( 'Unverified email.', 'inncognito' )
-            );
+            if ( empty( $jwt['email_verified'] ) ) {
+                throw new Exception( 'Token has an unverified email.' );
+            }
         }
 
         return $jwt;
@@ -375,13 +382,164 @@ final class Plugin
                     __( '<strong>Error</strong>: Sorry, %s cannot use the regular login form.', 'inncognito' ),
                     "<strong>$username</strong>"
                 ) .
-                "<br><a href=\"{$this->get_query()->url()}\">" .
+                "<br><a href=\"{$this->login_url()}\">" .
                 __( 'Proceed to Cognito', 'inncognito' ) .
                 '</a>'
             );
         }
 
         return $user;
+    }
+
+    /**
+     * @param WP_Error         $errors
+     * @param WP_User|WP_Error $user
+     * @return WP_Error
+     */
+    public function disable_password_reset( WP_Error $errors, $user ) : WP_Error
+    {
+        if ( ! $this->use_force_cognito() || ! ( $user instanceof WP_User ) ) {
+            return $errors;
+        }
+
+        if ( User::is_inncognito( $user->ID ) ) {
+            $errors->add(
+                'inncognito_force_cognito',
+                __( '<strong>Error</strong>: Sorry, this user cannot reset their password.', 'inncognito' ) .
+                "<br><a href=\"{$this->login_url()}\">" .
+                __( 'Proceed to Cognito', 'inncognito' ) .
+                '</a>'
+            );
+        }
+
+        return $errors;
+    }
+
+    /**
+     * @param bool    $should_show
+     * @param WP_User $user
+     * @return bool
+     */
+    public function should_show_password_fields( bool $should_show, WP_User $user ) : bool
+    {
+        if ( $this->use_force_cognito() && User::is_inncognito( $user->ID ) ) {
+            return false;
+        }
+
+        return $should_show;
+    }
+
+    /**
+     * @param WP_User $user
+     * @return void
+     */
+    public function show_profile( WP_User $user ) : void
+    {
+        if ( ! User::is_inncognito( $user->ID ) ) {
+            return;
+        }
+
+        require_once __DIR__ . '/../resources/views/profile.php';
+    }
+
+    public function update_mfa( WP_Error &$errors, bool $update, stdClass &$user ) : void
+    {
+        if (
+            ! defined( 'IS_PROFILE_PAGE' ) ||
+            ! IS_PROFILE_PAGE ||
+            ! $update ||
+            ! User::is_inncognito( $user->ID ) ||
+            empty( $_POST['inncognito_mfa_user_code'] )
+        ) {
+            return;
+        }
+
+        $code = filter_var( $_POST['inncognito_mfa_user_code'], FILTER_VALIDATE_REGEXP, [
+            'options' => [
+                'regexp' => '/^[0-9]{6}$/',
+            ],
+        ] );
+
+        if ( false === $code ) {
+            $errors->add(
+                'inncognito_mfa_user_code',
+                __( '<strong>Error</strong>: Please enter a valid MFA one-time password.', 'inncognito' ),
+                [ 'form-field' => 'inncognito_mfa_user_code' ]
+            );
+
+            return;
+        }
+
+        $token = User::get_token( $user->ID );
+
+        if ( ! $token ) {
+            $errors->add(
+                'inncognito_user_token',
+                __( '<strong>Error</strong>: You need to obtain a new access token from Cognito.', 'inncognito' ),
+                [ 'form-field' => 'inncognito_mfa_user_code' ]
+            );
+
+            return;
+        }
+
+        try {
+            $result = $this->get_cognito_identity_provider_client()->verifySoftwareToken( [
+                'AccessToken'        => $token,
+                'FriendlyDeviceName' => isset( $_POST['inncognito_mfa_user_device'] )
+                    ? sanitize_text_field( $_POST['inncognito_mfa_user_device'] )
+                    : null,
+                'UserCode'           => $code,
+            ] );
+        } catch ( Exception $exception ) {
+            $errors->add(
+                'inncognito_mfa_user_code',
+                sprintf(
+                    '<strong>%s</strong>: %s.',
+                    __( 'Error' ),
+                    $exception->getMessage()
+                ),
+                [ 'form-field' => 'inncognito_mfa_user_code' ]
+            );
+
+            return;
+        }
+
+        if ( $result->get( 'Status' ) == 'ERROR' ) {
+            $errors->add(
+                'inncognito_mfa_user_code',
+                __( '<strong>Error</strong>: Something went wrong.', 'inncognito' ),
+                [ 'form-field' => 'inncognito_mfa_user_code' ]
+            );
+        }
+    }
+
+    /**
+     * @param string $hook_suffix
+     * @return void
+     */
+    public function enqueue_scripts( string $hook_suffix ) : void
+    {
+        if ( 'profile.php' != $hook_suffix ) {
+            return;
+        }
+
+        // Domain mapping processes mu-plugins directory wrong.
+        $has_domain_mapping = remove_filter( 'plugins_url', 'domain_mapping_plugins_uri', 1 );
+
+        $suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+        $script_url = plugins_url( "public/js/profile$suffix.js", INNCOGNITO_FILE );
+
+        if ( $has_domain_mapping ) {
+            add_filter( 'plugins_url', 'domain_mapping_plugins_uri', 1 );
+        }
+
+        wp_enqueue_script(
+            'inncognito-profile',
+            $script_url,
+            [ 'jquery', 'wp-util', 'wp-api-request' ],
+            INNCOGNITO_VERSION,
+            true
+        );
     }
 
     /**
@@ -398,5 +556,6 @@ final class Plugin
     public function deactivate() : void
     {
         $this->get_jwks()->clear();
+        User::clear_db();
     }
 }

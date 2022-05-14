@@ -24,4 +24,18 @@ class Helpers
     {
         return json_decode( json_encode( $object ), true );
     }
+
+    /**
+     * @param string $message
+     * @return void
+     */
+    public static function error_die( string $message ) : void
+    {
+        wp_die(
+            '<h1>' . __( 'Something went wrong.' ) . '</h1>' .
+            "<p>$message</p>",
+            __( 'Inncognito', 'inncognito' ),
+            403
+        );
+    }
 }

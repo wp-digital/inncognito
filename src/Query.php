@@ -61,25 +61,48 @@ class Query
     /**
      * @return bool
      */
+    public function exists() : bool
+    {
+        return null !== $this->value();
+    }
+
+    /**
+     * @return bool
+     */
     public function is_root() : bool
     {
         return '' === $this->value();
     }
 
     /**
-     * @return string
+     * @return bool
      */
-    public function path() : string
+    public function is_token() : bool
     {
-        return "/{$this->get_endpoint()}/";
+        return 'token' == $this->value();
     }
 
     /**
+     * @param string $value
      * @return string
      */
-    public function url() : string
+    public function path( string $value = '' ) : string
     {
-        return home_url( $this->path() );
+        return trailingslashit( "/{$this->get_endpoint()}/" . ltrim( $value, '/' ) );
+    }
+
+    /**
+     * @param string      $value
+     * @param string|null $redirect_to
+     * @return string
+     */
+    public function url( string $value = '', string $redirect_to = null ) : string
+    {
+        if ( null !== $redirect_to ) {
+            $redirect_to = rawurlencode( $redirect_to );
+        }
+
+        return add_query_arg( 'redirect_to', $redirect_to, home_url( $this->path( $value ) ) );
     }
 
     /**
