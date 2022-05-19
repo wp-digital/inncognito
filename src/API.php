@@ -18,6 +18,10 @@ class API
      * @var string
      */
     protected $client_secret;
+    /**
+     * @var string|null
+     */
+    protected $redirect_uri = null;
 
     /**
      * @param string $domain
@@ -64,13 +68,36 @@ class API
     }
 
     /**
-     * @param string      $redirect_uri
+     * @param string $redirect_uri
+     * @return void
+     */
+    public function set_redirect_uri( string $redirect_uri ) : void
+    {
+        $this->redirect_uri = $redirect_uri;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function get_redirect_uri() : ?string
+    {
+        return $this->redirect_uri;
+    }
+
+    /**
+     * @param string      $callback_url
      * @param string      $state
      * @param string|null $scope
      * @return string
      */
-    public function login_url( string $redirect_uri, string $state, string $scope = null ) : string
+    public function login_url( string $callback_url, string $state, string $scope = null ) : string
     {
+        if ( null === ( $redirect_uri = $this->get_redirect_uri() ) ) {
+            $redirect_uri = $callback_url;
+        } else {
+            $state .= '+' . rawurlencode( $callback_url );
+        }
+
         return add_query_arg( [
             'response_type' => 'code',
             'client_id'     => $this->get_client_id(),
@@ -82,11 +109,11 @@ class API
 
     /**
      * @param string $code
-     * @param string $redirect_uri
+     * @param string $callback_url
      * @param array  $args
      * @return array|WP_Error
      */
-    public function token( string $code, string $redirect_uri, array $args = [] )
+    public function token( string $code, string $callback_url, array $args = [] )
     {
         return wp_remote_post(
             $this->endpoint( 'oauth2/token' ),
@@ -100,7 +127,9 @@ class API
                     'grant_type'   => 'authorization_code',
                     'client_id'    => $this->get_client_id(),
                     'code'         => $code,
-                    'redirect_uri' => $redirect_uri,
+                    'redirect_uri' => null !== ( $redirect_uri = $this->get_redirect_uri() )
+                        ? $redirect_uri
+                        : $callback_url,
                 ],
             ] )
         );
