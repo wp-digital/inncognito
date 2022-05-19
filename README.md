@@ -41,16 +41,47 @@ define( 'INNCOGNITO_USER_POOL_ID', '' );
 
 ### Usage
 
-Force users to log in with their AWS Cognito account. Works for users who were logged in with SSO at
-least once.
+Change callback URL:
+
+```
+define( 'INNCOGNITO_REDIRECT_URI', 'https://another-site.com/login/' );
+```
+
+Use case could be when e.g. you do not want to be limited with callback URL requirement
+(it's required to set all callbacks in Cognito settings) but want to use one with custom
+redirects handling.
+
+---
+
+Change login URL to custom endpoint:
+
+```
+define( 'INNCOGNITO_ENDPOINT', 'cognito' ); // default: 'inncognito'
+```
+
+---
+
+Change session cookie name:
+
+```
+define( 'INNCOGNITO_COOKIE', 'cognito' ); // default: 'inncognito'
+```
+
+Session is used to handle actions and redirects, prevent CSRF attacks.
+
+---
+
+Force users to log in with their AWS Cognito account:
 
 ```
 define( 'INNCOGNITO_FORCE_COGNITO', true );
 ```
 
+Works for users who were logged in with SSO at least once.
+
 ---
 
-Disable registration through AWS Cognito during SSO.
+Disable registration through AWS Cognito during SSO:
 
 ````
 define( 'INNCOGNITO_DISALLOW_REGISTRATION', true );
