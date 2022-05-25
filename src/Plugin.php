@@ -23,6 +23,10 @@ final class Plugin
      */
     private $query;
     /**
+     * @var Rewrite
+     */
+    private $rewrite;
+    /**
      * @var Controller
      */
     private $controller;
@@ -72,6 +76,7 @@ final class Plugin
 
         $this->api = new API( $domain, $client_id, $client_secret );
         $this->query = new Query();
+        $this->rewrite = new Rewrite();
         $this->controller = new Controller();
         $this->jwks = new JWKS( $region, $user_pool_id );
         $this->session = new Session();
@@ -92,6 +97,14 @@ final class Plugin
     public function get_query() : Query
     {
         return $this->query;
+    }
+
+    /**
+     * @return Rewrite
+     */
+    public function get_rewrite() : Rewrite
+    {
+        return $this->rewrite;
     }
 
     /**
@@ -198,6 +211,9 @@ final class Plugin
         add_action( 'show_user_profile', [ $this, 'show_profile' ] );
         add_action( 'user_profile_update_errors', [ $this, 'update_mfa' ], 10, 3 );
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
+
+        // Integrations
+        add_filter( 'pll_modify_rewrite_rule', [ $this, 'pll_modify_rewrite_rule' ], 10, 3 );
     }
 
     /**
@@ -233,7 +249,7 @@ final class Plugin
      */
     public function add_rewrite_endpoints() : void
     {
-        add_rewrite_endpoint( $this->get_query()->get_endpoint(), EP_ROOT );
+        $this->get_rewrite()->init( $this->get_query()->get_endpoint() );
     }
 
     /**
@@ -442,7 +458,13 @@ final class Plugin
         require_once __DIR__ . '/../resources/views/profile.php';
     }
 
-    public function update_mfa( WP_Error &$errors, bool $update, stdClass &$user ) : void
+    /**
+     * @param WP_Error $errors
+     * @param bool     $update
+     * @param stdClass $user
+     * @return void
+     */
+    public function update_mfa( WP_Error $errors, bool $update, stdClass $user ) : void
     {
         if (
             ! defined( 'IS_PROFILE_PAGE' ) ||
@@ -543,11 +565,29 @@ final class Plugin
     }
 
     /**
+     * @param bool   $modify
+     * @param array  $rule
+     * @param string $filter
+     * @return bool
+     */
+    public function pll_modify_rewrite_rule( bool $modify, array $rule, string $filter ) : bool
+    {
+        if ( ! $modify || 'root' != $filter ) {
+            return $modify;
+        }
+
+        list( $regex ) = $rule;
+
+        return $regex == "{$this->get_query()->get_endpoint()}(/(.*))?/?$";
+    }
+
+    /**
      * @return void
      */
     public function activate() : void
     {
         $this->get_jwks()->populate();
+        $this->get_rewrite()->flush_rules();
     }
 
     /**
@@ -556,6 +596,7 @@ final class Plugin
     public function deactivate() : void
     {
         $this->get_jwks()->clear();
+        $this->get_rewrite()->clear();
         User::clear_db();
     }
 }

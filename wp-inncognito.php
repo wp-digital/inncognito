@@ -2,10 +2,10 @@
 /**
  * Plugin Name: Inncognito
  * Description: Login and Registration with user's AWS Cognito account.
- * Version: 1.3.1
+ * Version: 1.4.0
  * Author: Innocode
  * Author URI: https://innocode.com
- * Tested up to: 5.9.3
+ * Tested up to: 6.0.0
  * License: GPLv2 or later
  * License URI: http://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: inncognito
@@ -17,7 +17,7 @@ if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
 
 use Innocode\Cognito;
 
-define( 'INNCOGNITO_VERSION', '1.3.1' );
+define( 'INNCOGNITO_VERSION', '1.4.0' );
 define( 'INNCOGNITO_FILE', __FILE__ );
 
 if (

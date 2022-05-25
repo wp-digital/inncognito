@@ -70,9 +70,7 @@ class JWKS
      */
     public function populate() : void
     {
-        $stored = get_option( 'inncognito_jwks_stored' );
-
-        if ( $stored ) {
+        if ( get_option( 'inncognito_jwks_stored' ) ) {
             return;
         }
 
