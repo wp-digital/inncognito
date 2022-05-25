@@ -576,9 +576,9 @@ final class Plugin
             return $modify;
         }
 
-        list( $regex ) = $rule;
+        list( $regex ) = array_keys( $rule );
 
-        return $regex == "{$this->get_query()->get_endpoint()}(/(.*))?/?$";
+        return $regex != "{$this->get_query()->get_endpoint()}(/(.*))?/?$";
     }
 
     /**
