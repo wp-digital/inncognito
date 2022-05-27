@@ -334,7 +334,7 @@ final class Plugin
             throw new Exception( 'Missing JWKS.' );
         }
 
-        $jwt = Helpers::object_to_array( JWT::decode( $body[ $key ], JWK::parseKeySet( $jwks() ) ) );
+        $jwt = Helpers::object_to_array( JWT::decode( $body[ $key ], JWK::parseKeySet( $jwks() ), [ 'RS256' ] ) );
 
         return $this->verify_jwt_claims( $jwt, $use );
     }

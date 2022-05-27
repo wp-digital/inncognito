@@ -29,7 +29,7 @@
   "require": {
     "php": ">=7.1",
     "ext-json": "*",
-    "firebase/php-jwt": "^6.0",
+    "firebase/php-jwt": "^5.5",
     "paragonie/sodium_compat": "^1.17",
     "endroid/qr-code": "^4.3",
     "aws/aws-sdk-php": "^3.222"
