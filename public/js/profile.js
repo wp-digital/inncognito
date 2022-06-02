@@ -2,13 +2,24 @@ jQuery(function ($) {
 
     'use strict';
 
+    var $button = $('#inncognito-mfa');
+    var $spinner = $button.next('.spinner');
+
     var mfaQrCode = wp.template('inncognito-mfa-qr-code');
+    var profile = wp.template('inncognito-profile');
 
-    $('#inncognito-mfa').on('click', function (event) {
+    if ($spinner.hasClass('is-active')) {
+        wp.apiRequest({
+            path: '/innocode/v1/cognito/me'
+        }).done(function (response) {
+            $button.parent().append(profile(response));
+            $spinner.removeClass('is-active');
+            $button.prop('disabled', false);
+        });
+    }
+
+    $button.on('click', function (event) {
         event.preventDefault();
-
-        var $button = $(this);
-        var $spinner = $button.next('.spinner');
 
         if ($spinner.hasClass('is-active')) {
             return;
@@ -18,7 +29,7 @@ jQuery(function ($) {
         $button.prop('disabled', true);
 
         wp.apiRequest({
-            path: '/innocode/v1/cognito/mfa/secret',
+            path: '/innocode/v1/cognito/mfa/secret'
         }).done(function (response) {
             $button.parent().html(mfaQrCode(response));
         }).fail(function () {

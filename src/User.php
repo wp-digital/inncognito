@@ -81,8 +81,8 @@ final class User
 
         User::inncognitize( $user_id );
 
-        if ( isset( $jwt['cognito:username'] ) ) {
-            User::innconnect( $user_id, $jwt['cognito:username'] );
+        if ( isset( $data['cognito:username'] ) ) {
+            User::innconnect( $user_id, $data['cognito:username'] );
         }
 
         if ( $is_super_admin ) {

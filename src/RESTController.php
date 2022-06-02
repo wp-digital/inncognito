@@ -26,18 +26,28 @@ class RESTController extends WP_REST_Controller
     {
         register_rest_route(
             $this->namespace,
+            "$this->rest_base/me",
+            [
+                'callback'            => [ $this, 'get_item' ],
+                'permission_callback' => [ $this, 'get_item_permissions_check' ],
+            ]
+        );
+
+        register_rest_route(
+            $this->namespace,
             "$this->rest_base/mfa/secret",
             [
                 'callback'            => [ $this, 'get_mfa_secret' ],
-                'permission_callback' => [ $this, 'get_mfa_secret_permissions_check' ],
+                'permission_callback' => [ $this, 'get_item_permissions_check' ],
             ]
         );
     }
 
     /**
+     * @param $request
      * @return bool|WP_Error
      */
-    public function get_mfa_secret_permissions_check()
+    public function get_item_permissions_check( $request )
     {
         if ( ! is_user_logged_in() ) {
             return new WP_Error(
@@ -68,6 +78,53 @@ class RESTController extends WP_REST_Controller
         }
 
         return true;
+    }
+
+    /**
+     * @param $request
+     * @return WP_REST_Response|WP_Error
+     */
+    public function get_item( $request )
+    {
+        try {
+            $result = inncognito()
+                ->get_cognito_identity_provider_client()
+                ->getUser( [
+                    'AccessToken' => User::get_token( get_current_user_id() ),
+                ] );
+        } catch ( Exception $exception ) {
+            return new WP_Error(
+                'rest_inncognito_profile_error',
+                $exception->getMessage(),
+                [ 'status' => WP_Http::INTERNAL_SERVER_ERROR ]
+            );
+        }
+
+        return rest_ensure_response( [
+            'username'   => $result->get( 'Username' ),
+            'attributes' => array_reduce(
+                $result->get( 'UserAttributes' ),
+                function ( array $attributes, array $attribute ) {
+                    if (
+                        ! isset( $attribute['Name'] ) ||
+                        ! isset( $attribute['Value'] ) ||
+                        $attribute['Name'] == 'sub'
+                    ) {
+                        return $attributes;
+                    }
+
+                    if ( $attribute['Name'] == 'email_verified' ) {
+                        $attributes[ $attribute['Name'] ] = $attribute['Value'] == 'true';
+                    } else {
+                        $attributes[ $attribute['Name'] ] = $attribute['Value'];
+                    }
+
+                    return $attributes;
+                },
+                []
+            ),
+            'mfa'        => $result->get( 'UserMFASettingList' ),
+        ] );
     }
 
     /**

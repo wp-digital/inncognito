@@ -8,8 +8,8 @@ $token = Innocode\Cognito\User::get_token( $user_id ); ?>
         </th>
         <td>
             <div class="hide-if-no-js">
-                <button type="button" id="inncognito-mfa" <?= ! $token ? 'disabled' : '' ?> class="button button-secondary"><?php _e( 'Register New MFA Device', 'inncognito' ) ?></button>
-                <span class="spinner" style="float: none;"></span>
+                <button type="button" id="inncognito-mfa" disabled class="button button-secondary"><?php _e( 'Register New MFA Device', 'inncognito' ) ?></button>
+                <span class="spinner <?= $token ? 'is-active' : '' ?>" style="float: none;"></span>
                 <p class="description">
                     <?php if ( $token ) {
                         _e( '<strong>Warning:</strong> this action immediately disassociates the existing device, if any, from your account.', 'inncognito' );
@@ -45,4 +45,18 @@ $token = Innocode\Cognito\User::get_token( $user_id ); ?>
         </label>
         <?php submit_button( __( 'Submit' ), 'secondary', 'inncognito-mfa-qr-code-submit', false ) ?>
     </div>
+</script>
+<script type="text/html" id="tmpl-inncognito-profile">
+    <p>
+        <strong><?php _e( 'Current methods:', 'inncognito' ) ?></strong>
+        <# if ( _.contains( data.mfa, 'SOFTWARE_TOKEN_MFA' ) ) { #>
+            <?php _e( 'Authenticator app', 'inncognito' ) ?>
+        <# } #>
+        <# if ( _.contains( data.mfa, 'SMS_MFA' ) ) { #>
+            <?php _e( 'SMS', 'inncognito' ) ?>
+        <# } #>
+        <# if ( ! data.mfa.length ) { #>
+            <?php _e( 'No methods', 'inncognito' ) ?>
+        <# } #>
+    </p>
 </script>
