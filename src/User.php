@@ -67,8 +67,6 @@ final class User
 
                 if ( null !== ( $role = get_role( $group ) ) ) {
                     $userdata['role'] = $role->name;
-
-                    break;
                 }
             }
         }
