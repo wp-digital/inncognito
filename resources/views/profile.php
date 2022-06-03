@@ -49,13 +49,14 @@ $token = Innocode\Cognito\User::get_token( $user_id ); ?>
 <script type="text/html" id="tmpl-inncognito-profile">
     <p>
         <strong><?php _e( 'Current methods:', 'inncognito' ) ?></strong>
-        <# if ( _.contains( data.mfa, 'SOFTWARE_TOKEN_MFA' ) ) { #>
-            <?php _e( 'Authenticator app', 'inncognito' ) ?>
-        <# } #>
-        <# if ( _.contains( data.mfa, 'SMS_MFA' ) ) { #>
-            <?php _e( 'SMS', 'inncognito' ) ?>
-        <# } #>
-        <# if ( ! data.mfa.length ) { #>
+        <# if ( _.isArray( data.mfa ) && data.mfa.length ) { #>
+            <# if ( _.contains( data.mfa, 'SOFTWARE_TOKEN_MFA' ) ) { #>
+                <?php _e( 'Authenticator app', 'inncognito' ) ?>
+            <# } #>
+            <# if ( _.contains( data.mfa, 'SMS_MFA' ) ) { #>
+                <?php _e( 'SMS', 'inncognito' ) ?>
+            <# } #>
+        <# } else { #>
             <?php _e( 'No methods', 'inncognito' ) ?>
         <# } #>
     </p>
