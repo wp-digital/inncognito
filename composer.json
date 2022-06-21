@@ -29,9 +29,9 @@
   "require": {
     "php": ">=7.1",
     "ext-json": "*",
-    "firebase/php-jwt": "^6.0",
+    "firebase/php-jwt": "v6.0.0",
     "paragonie/sodium_compat": "^1.17",
-    "endroid/qr-code": "^4.3",
+    "endroid/qr-code": "2.5.1",
     "aws/aws-sdk-php": "^3.222"
   },
   "autoload": {
