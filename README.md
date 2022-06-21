@@ -19,13 +19,13 @@ Login and Registration with user's AWS Cognito account.
 
     ````
     cd wp-content/plugins/
-    git clone git@github.com:innocode-digital/wp-inncognito.git
-    cd wp-inncognito/
+    git clone git@github.com:innocode-digital/inncognito.git
+    cd inncognito/
     composer install
     ````
 
 If plugin was installed as regular plugin then activate **AWS Lambda Prerender** from Plugins page
-or [WP-CLI](https://make.wordpress.org/cli/handbook/): `wp plugin activate wp-inncognito`.
+or [WP-CLI](https://make.wordpress.org/cli/handbook/): `wp plugin activate inncognito`.
 
 ### Configuration
 
