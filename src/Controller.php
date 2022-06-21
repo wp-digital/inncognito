@@ -10,7 +10,7 @@ final class Controller
      * @param Plugin $plugin
      * @return void
      */
-    public function index( Plugin $plugin ) : void
+    public function index( Plugin $plugin )
     {
         $query = $plugin->get_query();
         $scope = null;
@@ -53,7 +53,7 @@ final class Controller
      * @param State  $state
      * @return void
      */
-    public function login( Plugin $plugin, array $body, State $state ) : void
+    public function login( Plugin $plugin, array $body, State $state )
     {
         if ( is_user_logged_in() ) {
             wp_redirect( User::admin_url( get_current_user_id() ) );
@@ -111,7 +111,7 @@ final class Controller
      * @param State  $state
      * @return void
      */
-    public function token( Plugin $plugin, array $body, State $state ) : void
+    public function token( Plugin $plugin, array $body, State $state )
     {
         if ( ! is_user_logged_in() ) {
             return;
@@ -145,7 +145,7 @@ final class Controller
      * @param State $state
      * @return void
      */
-    private function redirect( int $user_id, State $state ) : void
+    private function redirect( int $user_id, State $state )
     {
         if (
             null !== ( $redirect_to = $state->get_redirect_to() ) &&

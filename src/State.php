@@ -29,7 +29,7 @@ final class State
      * @param string $action
      * @return void
      */
-    public function set_action( string $action ) : void
+    public function set_action( string $action )
     {
         $this->action = $action;
     }
@@ -46,7 +46,7 @@ final class State
      * @param string $redirect_to
      * @return void
      */
-    public function set_redirect_to( string $redirect_to ) : void
+    public function set_redirect_to( string $redirect_to )
     {
         $this->redirect_to = $redirect_to;
     }
@@ -54,7 +54,7 @@ final class State
     /**
      * @return string|null
      */
-    public function get_redirect_to() : ?string
+    public function get_redirect_to()
     {
         return $this->redirect_to;
     }
@@ -63,7 +63,7 @@ final class State
      * @param int $expiration
      * @return void
      */
-    public function set_expiration( int $expiration ) : void
+    public function set_expiration( int $expiration )
     {
         $this->expiration = $expiration;
     }
@@ -80,7 +80,7 @@ final class State
      * @param string $key
      * @return void
      */
-    public function set_key( string $key ) : void
+    public function set_key( string $key )
     {
         $this->key = $key;
     }
@@ -88,7 +88,7 @@ final class State
     /**
      * @return string|null
      */
-    public function get_key() : ?string
+    public function get_key()
     {
         return $this->key;
     }

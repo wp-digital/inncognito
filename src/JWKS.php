@@ -68,7 +68,7 @@ class JWKS
     /**
      * @return void
      */
-    public function populate() : void
+    public function populate()
     {
         if ( get_option( 'inncognito_jwks_stored' ) ) {
             return;
@@ -93,7 +93,7 @@ class JWKS
     /**
      * @return void
      */
-    public function clear() : void
+    public function clear()
     {
         delete_option( 'inncognito_jwks' );
         delete_option( 'inncognito_jwks_stored' );
@@ -102,7 +102,7 @@ class JWKS
     /**
      * @return array|null
      */
-    public function __invoke() : ?array
+    public function __invoke()
     {
         if ( null !== $this->value ) {
             return $this->value;

@@ -71,7 +71,7 @@ class API
      * @param string $redirect_uri
      * @return void
      */
-    public function set_redirect_uri( string $redirect_uri ) : void
+    public function set_redirect_uri( string $redirect_uri )
     {
         $this->redirect_uri = $redirect_uri;
     }
@@ -79,7 +79,7 @@ class API
     /**
      * @return string|null
      */
-    public function get_redirect_uri() : ?string
+    public function get_redirect_uri()
     {
         return $this->redirect_uri;
     }

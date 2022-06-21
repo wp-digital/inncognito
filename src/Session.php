@@ -22,7 +22,7 @@ final class Session
      * @param string $cookie_name
      * @return void
      */
-    public function set_cookie_name( string $cookie_name ) : void
+    public function set_cookie_name( string $cookie_name )
     {
         $this->cookie_name = $cookie_name . ( defined( 'COOKIEHASH' ) ? '_' . COOKIEHASH : '' );
     }
@@ -39,7 +39,7 @@ final class Session
      * @param string $cookie_path
      * @return void
      */
-    public function set_cookie_path( string $cookie_path ) : void
+    public function set_cookie_path( string $cookie_path )
     {
         $this->cookie_path = $cookie_path;
     }
@@ -56,7 +56,7 @@ final class Session
      * @param State $state
      * @return string|null
      */
-    public function start( State $state ) : ?string
+    public function start( State $state )
     {
         $state->set_expiration( time() + Session::TTL );
         $state->set_key( wp_generate_password( Session::KEY_LENGTH, false ) );
@@ -112,7 +112,7 @@ final class Session
      * @param int    $expires
      * @return void
      */
-    private function set_cookie( string $value, int $expires = 0 ) : void
+    private function set_cookie( string $value, int $expires = 0 )
     {
         setcookie( $this->get_cookie_name(), $value, $expires, $this->get_cookie_path(), COOKIE_DOMAIN, is_ssl(), true );
     }
@@ -120,7 +120,7 @@ final class Session
     /**
      * @return void
      */
-    private function unset_cookie() : void
+    private function unset_cookie()
     {
         $this->set_cookie( ' ', time() - YEAR_IN_SECONDS );
     }

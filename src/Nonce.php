@@ -20,7 +20,7 @@ final class Nonce
      * @param string $nonce
      * @return string|null
      */
-    public static function verify( string $nonce ) : ?string
+    public static function verify( string $nonce )
     {
         if ( ! strpos( $nonce, '|' ) ) {
             return null;

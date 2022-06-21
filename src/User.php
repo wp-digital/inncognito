@@ -122,7 +122,7 @@ final class User
      * @param string $username
      * @return WP_User|null
      */
-    public static function find_user( string $username ) : ?WP_User
+    public static function find_user( string $username )
     {
         $user = get_user_by( 'login', $username );
 
@@ -139,7 +139,7 @@ final class User
      * @param int $user_id
      * @return void
      */
-    public static function inncognitize( int $user_id ) : void
+    public static function inncognitize( int $user_id )
     {
         update_user_meta( $user_id, 'inncognito', current_time( 'mysql' ) );
     }
@@ -158,7 +158,7 @@ final class User
      * @param string $username
      * @return void
      */
-    public static function innconnect( int $user_id, string $username ) : void
+    public static function innconnect( int $user_id, string $username )
     {
         update_user_meta( $user_id, 'inncognito_username', $username );
     }
@@ -178,7 +178,7 @@ final class User
      * @param int    $expiration
      * @return void
      */
-    public static function update_token( int $user_id, string $token, int $expiration ) : void
+    public static function update_token( int $user_id, string $token, int $expiration )
     {
         update_user_meta( $user_id, 'inncognito_token', "$expiration|$token" );
     }
@@ -187,7 +187,7 @@ final class User
      * @param int $user_id
      * @return string|null
      */
-    public static function get_token( int $user_id ) : ?string
+    public static function get_token( int $user_id )
     {
         $token = get_user_meta( $user_id, 'inncognito_token', true );
 
@@ -228,7 +228,7 @@ final class User
     /**
      * @return void
      */
-    public static function clear_db() : void
+    public static function clear_db()
     {
         global $wpdb;
 
@@ -244,7 +244,7 @@ final class User
     /**
      * @return void
      */
-    public static function flush_expired_tokens() : void
+    public static function flush_expired_tokens()
     {
         global $wpdb;
 

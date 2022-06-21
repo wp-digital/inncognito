@@ -11,7 +11,7 @@ class Helpers
      * @param WP_Error $error
      * @return void
      */
-    public static function log_wp_error( WP_Error $error ) : void
+    public static function log_wp_error( WP_Error $error )
     {
         error_log( "{$error->get_error_code()}: {$error->get_error_message()}" );
     }
@@ -29,7 +29,7 @@ class Helpers
      * @param string $message
      * @return void
      */
-    public static function error_die( string $message ) : void
+    public static function error_die( string $message )
     {
         wp_die(
             '<h1>' . __( 'Something went wrong.' ) . '</h1>' .

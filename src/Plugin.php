@@ -193,7 +193,7 @@ final class Plugin
     /**
      * @return void
      */
-    public function run() : void
+    public function run()
     {
         register_activation_hook( INNCOGNITO_FILE, [ $this, 'activate' ] );
         register_deactivation_hook( INNCOGNITO_FILE, [ $this, 'deactivate' ] );
@@ -247,7 +247,7 @@ final class Plugin
     /**
      * @return void
      */
-    public function add_rewrite_endpoints() : void
+    public function add_rewrite_endpoints()
     {
         $this->get_rewrite()->init( $this->get_query()->get_endpoint() );
     }
@@ -255,7 +255,7 @@ final class Plugin
     /**
      * @return void
      */
-    public function handle_request() : void
+    public function handle_request()
     {
         $query = $this->get_query();
 
@@ -449,7 +449,7 @@ final class Plugin
      * @param WP_User $user
      * @return void
      */
-    public function show_profile( WP_User $user ) : void
+    public function show_profile( WP_User $user )
     {
         if ( ! User::is_inncognito( $user->ID ) ) {
             return;
@@ -464,7 +464,7 @@ final class Plugin
      * @param stdClass $user
      * @return void
      */
-    public function update_mfa( WP_Error $errors, bool $update, stdClass $user ) : void
+    public function update_mfa( WP_Error $errors, bool $update, stdClass $user )
     {
         if (
             ! defined( 'IS_PROFILE_PAGE' ) ||
@@ -539,7 +539,7 @@ final class Plugin
      * @param string $hook_suffix
      * @return void
      */
-    public function enqueue_scripts( string $hook_suffix ) : void
+    public function enqueue_scripts( string $hook_suffix )
     {
         if ( 'profile.php' != $hook_suffix ) {
             return;
@@ -584,7 +584,7 @@ final class Plugin
     /**
      * @return void
      */
-    public function activate() : void
+    public function activate()
     {
         $this->get_jwks()->populate();
         $this->get_rewrite()->flush_rules();
@@ -593,7 +593,7 @@ final class Plugin
     /**
      * @return void
      */
-    public function deactivate() : void
+    public function deactivate()
     {
         $this->get_jwks()->clear();
         $this->get_rewrite()->clear();

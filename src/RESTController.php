@@ -22,7 +22,7 @@ class RESTController extends WP_REST_Controller
      *
      * @return void
      */
-    public function register_routes() : void
+    public function register_routes()
     {
         register_rest_route(
             $this->namespace,

@@ -8,7 +8,7 @@ final class Rewrite
      * @param string $endpoint
      * @return void
      */
-    public function init( string $endpoint ) : void
+    public function init( string $endpoint )
     {
         add_rewrite_endpoint( $endpoint, EP_ROOT );
 
@@ -18,7 +18,7 @@ final class Rewrite
     /**
      * @return void
      */
-    public function maybe_flush_rules() : void
+    public function maybe_flush_rules()
     {
         if ( get_option( 'inncognito_rewrite_rules_flushed' ) ) {
             return;
@@ -32,7 +32,7 @@ final class Rewrite
     /**
      * @return void
      */
-    public function flush_rules() : void
+    public function flush_rules()
     {
         flush_rewrite_rules();
     }
@@ -40,7 +40,7 @@ final class Rewrite
     /**
      * @return void
      */
-    public function clear() : void
+    public function clear()
     {
         delete_option( 'inncognito_rewrite_rules_flushed' );
     }

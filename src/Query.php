@@ -18,7 +18,7 @@ class Query
      *
      * @return void
      */
-    public function set_endpoint( string $endpoint ) : void
+    public function set_endpoint( string $endpoint )
     {
         $this->endpoint = $endpoint;
     }
@@ -53,7 +53,7 @@ class Query
     /**
      * @return string|null
      */
-    public function value() : ?string
+    public function value()
     {
         return get_query_var( $this->get_endpoint(), null );
     }
@@ -108,7 +108,7 @@ class Query
     /**
      * @return void
      */
-    public function parse() : void
+    public function parse()
     {
         if ( isset( $_GET['code'] ) ) {
             $this->vars['code'] = $_GET['code'];
