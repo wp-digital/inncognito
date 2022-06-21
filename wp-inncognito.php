@@ -71,7 +71,7 @@ if ( defined( 'INNCOGNITO_DISALLOW_REGISTRATION' ) && INNCOGNITO_DISALLOW_REGIST
 $GLOBALS['inncognito']->run();
 
 if ( ! function_exists( 'inncognito' ) ) {
-    function inncognito() : ?Cognito\Plugin {
+    function inncognito() {
         global $inncognito;
 
         if ( is_null( $inncognito ) ) {
