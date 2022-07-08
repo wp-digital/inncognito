@@ -41,7 +41,7 @@ final class Session
      */
     public function set_cookie_path( string $cookie_path ) : void
     {
-        $this->cookie_path = $cookie_path;
+        $this->cookie_path = preg_replace( '|https?://[^/]+|i', '', get_option( 'home' ) ) . $cookie_path;
     }
 
     /**
