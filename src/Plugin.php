@@ -393,17 +393,25 @@ final class Plugin
 
         if ( User::is_inncognito( $user->ID ) ) {
             $redirect_to = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( $_REQUEST['redirect_to'] ) : null;
-
-            return new WP_Error(
-                'inncognito_force_cognito',
-                sprintf(
-                    __( '<strong>Error</strong>: Sorry, %s cannot use the regular login form.', 'inncognito' ),
-                    "<strong>$username</strong>"
-                ) .
-                "<br><a href=\"{$this->login_url( $redirect_to )}\">" .
-                __( 'Proceed to Cognito', 'inncognito' ) .
-                '</a>'
+            $interim_login = isset( $_REQUEST['interim-login'] );
+            $message = sprintf(
+                __( '<strong>Error</strong>: Sorry, %s cannot use the regular login form.', 'inncognito' ),
+                "<strong>$username</strong>"
             );
+            $message .= '<br>';
+            $message .= sprintf(
+                '<a href="%s" %s>%s</a>',
+                $this->login_url( $redirect_to ),
+                $interim_login ? 'target="_blank"' : '',
+                __( 'Proceed to Cognito', 'inncognito' )
+            );
+
+            if ( $interim_login ) {
+                $message .= '<br>';
+                $message .= __( 'The login page will open in a new tab. After logging in you can close it and return to this page.' );
+            }
+
+            return new WP_Error( 'inncognito_force_cognito', $message );
         }
 
         return $user;
