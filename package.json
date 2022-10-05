@@ -1,6 +1,6 @@
 {
   "name": "wp-inncognito",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Login and Registration with user's AWS Cognito account.",
   "scripts": {
     "build": "uglifyjs ./public/js/profile.js -c -o ./public/js/profile.min.js",
