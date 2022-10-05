@@ -224,7 +224,7 @@ final class Plugin
         add_action( 'template_redirect', [ $this, 'handle_request' ] );
         add_action( 'delete_expired_transients', [ User::class, 'flush_expired_tokens' ] );
 
-        add_filter( 'authenticate', [ $this, 'force_cognito' ], 10, 2 );
+        add_filter( 'authenticate', [ $this, 'force_cognito' ], 50, 2 );
         add_action( 'validate_password_reset', [ $this, 'disable_password_reset'], 10, 2 );
 
         add_filter( 'show_password_fields', [ $this, 'should_show_password_fields' ], 10, 2 );
