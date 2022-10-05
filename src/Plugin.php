@@ -6,6 +6,7 @@ use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
 use Exception;
 use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
+use Innocode\Cognito\Interfaces\IntegrationInterface;
 use WP_Error;
 use WP_User;
 use stdClass;
@@ -13,6 +14,9 @@ use stdClass;
 final class Plugin
 {
     const DOMAIN_MASK = 'https://%s.auth.%s.amazoncognito.com';
+
+    const INTEGRATION_GOOGLE_AUTHENTICATOR = 'google_authenticator';
+    const INTEGRATION_POLYLANG = 'polylang';
 
     /**
      * @var API
@@ -54,6 +58,10 @@ final class Plugin
      * @var RESTController
      */
     private $rest_controller;
+    /**
+     * @var IntegrationInterface[]
+     */
+    private $integrations = [];
 
     /**
      * @param string $domain
@@ -81,6 +89,9 @@ final class Plugin
         $this->jwks = new JWKS( $region, $user_pool_id );
         $this->session = new Session();
         $this->rest_controller = new RESTController();
+
+        $this->integrations[ Plugin::INTEGRATION_GOOGLE_AUTHENTICATOR ] = new Integrations\GoogleAuthenticator\Integration();
+        $this->integrations[ Plugin::INTEGRATION_POLYLANG ] = new Integrations\Polylang\Integration();
     }
 
     /**
@@ -191,6 +202,14 @@ final class Plugin
     }
 
     /**
+     * @return IntegrationInterface[]
+     */
+    public function get_integrations() : array
+    {
+        return $this->integrations;
+    }
+
+    /**
      * @return void
      */
     public function run() : void
@@ -198,6 +217,7 @@ final class Plugin
         register_activation_hook( INNCOGNITO_FILE, [ $this, 'activate' ] );
         register_deactivation_hook( INNCOGNITO_FILE, [ $this, 'deactivate' ] );
 
+        add_action( 'plugins_loaded', [ $this, 'run_integrations' ] );
         add_action( 'init', [ $this->get_jwks(), 'populate' ] );
         add_action( 'init', [ $this, 'add_rewrite_endpoints' ] );
         add_action( 'rest_api_init', [ $this->get_rest_controller(), 'register_routes' ] );
@@ -211,9 +231,16 @@ final class Plugin
         add_action( 'show_user_profile', [ $this, 'show_profile' ] );
         add_action( 'user_profile_update_errors', [ $this, 'update_mfa' ], 10, 3 );
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
+    }
 
-        // Integrations
-        add_filter( 'pll_modify_rewrite_rule', [ $this, 'pll_modify_rewrite_rule' ], 10, 3 );
+    /**
+     * @return void
+     */
+    public function run_integrations() : void
+    {
+        foreach ( $this->get_integrations() as $integration ) {
+            $integration->run( $this );
+        }
     }
 
     /**
@@ -572,23 +599,6 @@ final class Plugin
             INNCOGNITO_VERSION,
             true
         );
-    }
-
-    /**
-     * @param bool   $modify
-     * @param array  $rule
-     * @param string $filter
-     * @return bool
-     */
-    public function pll_modify_rewrite_rule( bool $modify, array $rule, string $filter ) : bool
-    {
-        if ( ! $modify || 'root' != $filter ) {
-            return $modify;
-        }
-
-        list( $regex ) = array_keys( $rule );
-
-        return $regex != "{$this->get_query()->get_endpoint()}(/(.*))?/?$";
     }
 
     /**
