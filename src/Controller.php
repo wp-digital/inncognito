@@ -34,11 +34,15 @@ final class Controller {
 		$state = new State();
 		$state->set_action( $query->value() );
 
-		if ( null !== ( $redirect_to = $query->get_var( 'redirect_to' ) ) ) {
+		$redirect_to = $query->get_var( 'redirect_to' );
+
+		if ( null !== $redirect_to ) {
 			$state->set_redirect_to( $redirect_to );
 		}
 
-		if ( null === ( $key = $plugin->get_session()->start( $state ) ) ) {
+		$key = $plugin->get_session()->start( $state );
+
+		if ( null === $key ) {
 			return;
 		}
 
@@ -128,7 +132,7 @@ final class Controller {
 			return;
 		}
 
-		if ( $jwt['username'] != User::get_innconnection( $user_id ) ) {
+		if ( $jwt['username'] !== User::get_innconnection( $user_id ) ) {
 			Helpers::error_die( __( 'Invalid user. Please check username as it does not match.', 'inncognito' ) );
 		}
 
@@ -143,8 +147,10 @@ final class Controller {
 	 * @return void
 	 */
 	private function redirect( int $user_id, State $state ) : void {
+		$redirect_to = $state->get_redirect_to();
+
 		if (
-			null !== ( $redirect_to = $state->get_redirect_to() ) &&
+			null !== $redirect_to &&
 			! in_array(
 				$redirect_to,
 				[

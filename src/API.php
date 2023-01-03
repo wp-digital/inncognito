@@ -82,7 +82,9 @@ class API {
 	 * @return string
 	 */
 	public function login_url( string $callback_url, string $state, string $scope = null ) : string {
-		if ( null === ( $redirect_uri = $this->get_redirect_uri() ) ) {
+		$redirect_uri = $this->get_redirect_uri();
+
+		if ( null === $redirect_uri ) {
 			$redirect_uri = $callback_url;
 		} else {
 			$state .= '+' . rawurlencode( $callback_url );
@@ -104,9 +106,11 @@ class API {
 	 * @param string $code
 	 * @param string $callback_url
 	 * @param array  $args
-	 * @return array|WP_Error
+	 * @return array|\WP_Error
 	 */
 	public function token( string $code, string $callback_url, array $args = [] ) {
+		$redirect_uri = $this->get_redirect_uri();
+
 		return wp_remote_post(
 			$this->endpoint( 'oauth2/token' ),
 			wp_parse_args(
@@ -121,9 +125,7 @@ class API {
 						'grant_type'   => 'authorization_code',
 						'client_id'    => $this->get_client_id(),
 						'code'         => $code,
-						'redirect_uri' => null !== ( $redirect_uri = $this->get_redirect_uri() )
-							? $redirect_uri
-							: $callback_url,
+						'redirect_uri' => null !== $redirect_uri ? $redirect_uri : $callback_url,
 					],
 				]
 			)
