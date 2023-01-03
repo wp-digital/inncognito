@@ -2,259 +2,250 @@
 
 namespace Innocode\Cognito;
 
-use WP_Error;
 use WP_User;
 
-final class User
-{
-    /**
-     * @param array $data
-     * @return int|WP_Error
-     */
-    public static function create_from_jwt( array $data )
-    {
-        $username = '';
+final class User {
 
-        if ( isset( $data['preferred_username'] ) ) {
-            $username = $data['preferred_username'];
-        } elseif ( isset( $data['email'] ) ) {
-            $username = $data['email'];
-        }
+	/**
+	 * @param array $data
+	 * @return int|WP_Error
+	 */
+	public static function create_from_jwt( array $data ) {
+		$username = '';
 
-        $username = sanitize_user( $username, true );
-        $base_username = $username;
+		if ( isset( $data['preferred_username'] ) ) {
+			$username = $data['preferred_username'];
+		} elseif ( isset( $data['email'] ) ) {
+			$username = $data['email'];
+		}
 
-        while ( username_exists( $username ) ) {
-            $username = uniqid( $base_username );
-        }
+		$username      = sanitize_user( $username, true );
+		$base_username = $username;
 
-        $userdata = [
-            'user_login' => $username,
-            'user_email' => $data['email'] ?? '',
-            'user_pass'  => wp_generate_password( 32 ),
-        ];
+		while ( username_exists( $username ) ) {
+			$username = uniqid( $base_username );
+		}
 
-        if ( isset( $data['website'] ) ) {
-            $userdata['user_url'] = $data['website'];
-        }
+		$userdata = [
+			'user_login' => $username,
+			'user_email' => $data['email'] ?? '',
+			'user_pass'  => wp_generate_password( 32 ),
+		];
 
-        if ( isset( $data['name'] ) ) {
-            $userdata['display_name'] = $data['name'];
-        }
+		if ( isset( $data['website'] ) ) {
+			$userdata['user_url'] = $data['website'];
+		}
 
-        if ( isset( $data['nickname'] ) ) {
-            $userdata['nickname'] = $data['nickname'];
-        }
+		if ( isset( $data['name'] ) ) {
+			$userdata['display_name'] = $data['name'];
+		}
 
-        if ( isset( $data['given_name'] ) ) {
-            $userdata['first_name'] = $data['given_name'];
-        }
+		if ( isset( $data['nickname'] ) ) {
+			$userdata['nickname'] = $data['nickname'];
+		}
 
-        if ( isset( $data['family_name'] ) ) {
-            $userdata['last_name'] = $data['family_name'];
-        }
+		if ( isset( $data['given_name'] ) ) {
+			$userdata['first_name'] = $data['given_name'];
+		}
 
-        $is_super_admin = false;
+		if ( isset( $data['family_name'] ) ) {
+			$userdata['last_name'] = $data['family_name'];
+		}
 
-        if ( ! empty( $data['cognito:groups'] ) && is_array( $data['cognito:groups'] ) ) {
-            foreach ( $data['cognito:groups'] as $group ) {
-                if ( $group == 'super_admin' ) {
-                    $userdata['role'] = 'administrator';
-                    $is_super_admin = true;
+		$is_super_admin = false;
 
-                    break;
-                }
+		if ( ! empty( $data['cognito:groups'] ) && is_array( $data['cognito:groups'] ) ) {
+			foreach ( $data['cognito:groups'] as $group ) {
+				if ( $group === 'super_admin' ) {
+					$userdata['role'] = 'administrator';
+					$is_super_admin   = true;
 
-                if ( null !== ( $role = get_role( $group ) ) ) {
-                    $userdata['role'] = $role->name;
-                }
-            }
-        }
+					break;
+				}
 
-        $user_id = wp_insert_user( $userdata );
+				$role = get_role( $group );
 
-        if ( is_wp_error( $user_id ) ) {
-            return $user_id;
-        }
+				if ( null !== $role ) {
+					$userdata['role'] = $role->name;
+				}
+			}
+		}
 
-        User::inncognitize( $user_id );
+		$user_id = wp_insert_user( $userdata );
 
-        if ( isset( $data['cognito:username'] ) ) {
-            User::innconnect( $user_id, $data['cognito:username'] );
-        }
+		if ( is_wp_error( $user_id ) ) {
+			return $user_id;
+		}
 
-        if ( $is_super_admin ) {
-            grant_super_admin( $user_id );
-        }
+		self::inncognitize( $user_id );
 
-        return $user_id;
-    }
+		if ( isset( $data['cognito:username'] ) ) {
+			self::innconnect( $user_id, $data['cognito:username'] );
+		}
 
-    /**
-     * @param string $username
-     * @return WP_Error|WP_User
-     */
-    public static function no_password_sign_in( string $username )
-    {
-        $authenticate = function ( $user, string $username ) {
-            return ! ( $user instanceof WP_User ) && ! empty( $username )
-                ? User::find_user( $username )
-                : $user;
-        };
+		if ( $is_super_admin ) {
+			grant_super_admin( $user_id );
+		}
 
-        add_filter( 'authenticate', $authenticate, 10, 2 );
+		return $user_id;
+	}
 
-        $user = wp_signon( [
-            'user_login' => $username,
-            'remember'   => true,
-        ] );
+	/**
+	 * @param string $username
+	 * @return WP_Error|WP_User
+	 */
+	public static function no_password_sign_in( string $username ) {
+		$authenticate = function ( $user, string $username ) {
+			return ! ( $user instanceof WP_User ) && ! empty( $username )
+				? User::find_user( $username )
+				: $user;
+		};
 
-        remove_filter( 'authenticate', $authenticate );
+		add_filter( 'authenticate', $authenticate, 10, 2 );
 
-        if ( ! is_wp_error( $user ) ) {
-            wp_set_current_user( $user->ID );
-        }
+		$user = wp_signon(
+			[
+				'user_login' => $username,
+				'remember'   => true,
+			]
+		);
 
-        return $user;
-    }
+		remove_filter( 'authenticate', $authenticate );
 
-    /**
-     * @param string $username
-     * @return WP_User|null
-     */
-    public static function find_user( string $username ) : ?WP_User
-    {
-        $user = get_user_by( 'login', $username );
+		if ( ! is_wp_error( $user ) ) {
+			wp_set_current_user( $user->ID );
+		}
 
-        if ( $user instanceof WP_User ) {
-            return $user;
-        }
+		return $user;
+	}
 
-        $user = get_user_by( 'email', $username );
+	/**
+	 * @param string $username
+	 * @return WP_User|null
+	 */
+	public static function find_user( string $username ) : ?WP_User {
+		$user = get_user_by( 'login', $username );
 
-        return $user ?: null;
-    }
+		if ( $user instanceof WP_User ) {
+			return $user;
+		}
 
-    /**
-     * @param int $user_id
-     * @return void
-     */
-    public static function inncognitize( int $user_id ) : void
-    {
-        update_user_meta( $user_id, 'inncognito', current_time( 'mysql' ) );
-    }
+		$user = get_user_by( 'email', $username );
 
-    /**
-     * @param int $user_id
-     * @return bool
-     */
-    public static function is_inncognito( int $user_id ) : bool
-    {
-        return (bool) get_user_meta( $user_id, 'inncognito', true );
-    }
+		return $user ?: null;
+	}
 
-    /**
-     * @param int    $user_id
-     * @param string $username
-     * @return void
-     */
-    public static function innconnect( int $user_id, string $username ) : void
-    {
-        update_user_meta( $user_id, 'inncognito_username', $username );
-    }
+	/**
+	 * @param int $user_id
+	 * @return void
+	 */
+	public static function inncognitize( int $user_id ) : void {
+		update_user_meta( $user_id, 'inncognito', current_time( 'mysql' ) );
+	}
 
-    /**
-     * @param int $user_id
-     * @return string
-     */
-    public static function get_innconnection( int $user_id ) : string
-    {
-        return (string) get_user_meta( $user_id, 'inncognito_username', true );
-    }
+	/**
+	 * @param int $user_id
+	 * @return bool
+	 */
+	public static function is_inncognito( int $user_id ) : bool {
+		return (bool) get_user_meta( $user_id, 'inncognito', true );
+	}
 
-    /**
-     * @param int    $user_id
-     * @param string $token
-     * @param int    $expiration
-     * @return void
-     */
-    public static function update_token( int $user_id, string $token, int $expiration ) : void
-    {
-        update_user_meta( $user_id, 'inncognito_token', "$expiration|$token" );
-    }
+	/**
+	 * @param int    $user_id
+	 * @param string $username
+	 * @return void
+	 */
+	public static function innconnect( int $user_id, string $username ) : void {
+		update_user_meta( $user_id, 'inncognito_username', $username );
+	}
 
-    /**
-     * @param int $user_id
-     * @return string|null
-     */
-    public static function get_token( int $user_id ) : ?string
-    {
-        $token = get_user_meta( $user_id, 'inncognito_token', true );
+	/**
+	 * @param int $user_id
+	 * @return string
+	 */
+	public static function get_innconnection( int $user_id ) : string {
+		return (string) get_user_meta( $user_id, 'inncognito_username', true );
+	}
 
-        if ( ! $token || false === strpos( $token, '|' ) ) {
-            return null;
-        }
+	/**
+	 * @param int    $user_id
+	 * @param string $token
+	 * @param int    $expiration
+	 * @return void
+	 */
+	public static function update_token( int $user_id, string $token, int $expiration ) : void {
+		update_user_meta( $user_id, 'inncognito_token', "$expiration|$token" );
+	}
 
-        list( $expiration, $token ) = explode( '|', $token, 2 );
+	/**
+	 * @param int $user_id
+	 * @return string|null
+	 */
+	public static function get_token( int $user_id ) : ?string {
+		$token = get_user_meta( $user_id, 'inncognito_token', true );
 
-        if ( $expiration < time() ) {
-            return null;
-        }
+		if ( ! $token || false === strpos( $token, '|' ) ) {
+			return null;
+		}
 
-        return $token;
-    }
+		list( $expiration, $token ) = explode( '|', $token, 2 );
 
-    /**
-     * @param int $user_id
-     * @return string
-     */
-    public static function admin_url( int $user_id ) : string
-    {
-        if ( is_multisite() && ! get_active_blog_for_user( $user_id ) && ! is_super_admin( $user_id ) ) {
-            return user_admin_url();
-        }
+		if ( $expiration < time() ) {
+			return null;
+		}
 
-        if ( is_multisite() && ! user_can( $user_id, 'read' ) ) {
-            return get_dashboard_url( $user_id );
-        }
+		return $token;
+	}
 
-        if ( ! user_can( $user_id, 'edit_posts' ) ) {
-            return user_can( $user_id, 'read' ) ? admin_url( 'profile.php' ) : home_url();
-        }
+	/**
+	 * @param int $user_id
+	 * @return string
+	 */
+	public static function admin_url( int $user_id ) : string {
+		if ( is_multisite() && ! get_active_blog_for_user( $user_id ) && ! is_super_admin( $user_id ) ) {
+			return user_admin_url();
+		}
 
-        return admin_url();
-    }
+		if ( is_multisite() && ! user_can( $user_id, 'read' ) ) {
+			return get_dashboard_url( $user_id );
+		}
 
-    /**
-     * @return void
-     */
-    public static function clear_db() : void
-    {
-        global $wpdb;
+		if ( ! user_can( $user_id, 'edit_posts' ) ) {
+			return user_can( $user_id, 'read' ) ? admin_url( 'profile.php' ) : home_url();
+		}
 
-        foreach ( [
-            'inncognito',
-            'inncognito_username',
-            'inncognito_token',
-        ] as $key ) {
-            $wpdb->delete( $wpdb->usermeta, [ 'meta_key' => $key ], [ '%s' ] );
-        }
-    }
+		return admin_url();
+	}
 
-    /**
-     * @return void
-     */
-    public static function flush_expired_tokens() : void
-    {
-        global $wpdb;
+	/**
+	 * @return void
+	 */
+	public static function clear_db() : void {
+		global $wpdb;
 
-        $wpdb->query(
-            $wpdb->prepare(
-                "DELETE FROM $wpdb->usermeta
+		foreach ( [
+			'inncognito',
+			'inncognito_username',
+			'inncognito_token',
+		] as $key ) {
+			$wpdb->delete( $wpdb->usermeta, [ 'meta_key' => $key ], [ '%s' ] );
+		}
+	}
+
+	/**
+	 * @return void
+	 */
+	public static function flush_expired_tokens() : void {
+		global $wpdb;
+
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM $wpdb->usermeta
                 WHERE meta_key = 'inncognito_token'
                 AND meta_value < %d",
-                time()
-            )
-        );
-    }
+				time()
+			)
+		);
+	}
 }

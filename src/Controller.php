@@ -4,161 +4,161 @@ namespace Innocode\Cognito;
 
 use Exception;
 
-final class Controller
-{
-    /**
-     * @param Plugin $plugin
-     * @return void
-     */
-    public function index( Plugin $plugin ) : void
-    {
-        $query = $plugin->get_query();
-        $scope = null;
+final class Controller {
 
-        if ( $query->is_root() ) {
-            if ( is_user_logged_in() ) {
-                wp_redirect( User::admin_url( get_current_user_id() ) );
-                exit;
-            }
+	/**
+	 * @param Plugin $plugin
+	 * @return void
+	 */
+	public function index( Plugin $plugin ) : void {
+		$query = $plugin->get_query();
+		$scope = null;
 
-            nocache_headers();
+		if ( $query->is_root() ) {
+			if ( is_user_logged_in() ) {
+				wp_redirect( User::admin_url( get_current_user_id() ) );
+				exit;
+			}
 
-            $scope = 'openid email profile';
-        } elseif ( $query->is_token() ) {
-            if ( ! is_user_logged_in() || ! User::is_inncognito( get_current_user_id() ) ) {
-                return;
-            }
+			nocache_headers();
 
-            $scope = 'aws.cognito.signin.user.admin';
-        }
+			$scope = 'openid email profile';
+		} elseif ( $query->is_token() ) {
+			if ( ! is_user_logged_in() || ! User::is_inncognito( get_current_user_id() ) ) {
+				return;
+			}
 
-        $state = new State();
-        $state->set_action( $query->value() );
+			$scope = 'aws.cognito.signin.user.admin';
+		}
 
-        if ( null !== ( $redirect_to = $query->get_var( 'redirect_to' ) ) ) {
-            $state->set_redirect_to( $redirect_to );
-        }
+		$state = new State();
+		$state->set_action( $query->value() );
 
-        if ( null === ( $key = $plugin->get_session()->start( $state ) ) ) {
-            return;
-        }
+		if ( null !== ( $redirect_to = $query->get_var( 'redirect_to' ) ) ) {
+			$state->set_redirect_to( $redirect_to );
+		}
 
-        wp_redirect( $plugin->api_url( $key, $scope ) );
-        exit;
-    }
+		if ( null === ( $key = $plugin->get_session()->start( $state ) ) ) {
+			return;
+		}
 
-    /**
-     * @param Plugin $plugin
-     * @param array  $body
-     * @param State  $state
-     * @return void
-     */
-    public function login( Plugin $plugin, array $body, State $state ) : void
-    {
-        if ( is_user_logged_in() ) {
-            wp_redirect( User::admin_url( get_current_user_id() ) );
-            exit;
-        }
+		wp_redirect( $plugin->api_url( $key, $scope ) );
+		exit;
+	}
 
-        nocache_headers();
+	/**
+	 * @param Plugin $plugin
+	 * @param array  $body
+	 * @param State  $state
+	 * @return void
+	 */
+	public function login( Plugin $plugin, array $body, State $state ) : void {
+		if ( is_user_logged_in() ) {
+			wp_redirect( User::admin_url( get_current_user_id() ) );
+			exit;
+		}
 
-        try {
-            $jwt = $plugin->retrieve_jwt( $body, 'id' );
-        } catch ( Exception $exception ) {
-            error_log( $exception->getMessage() );
+		nocache_headers();
 
-            return;
-        }
+		try {
+			$jwt = $plugin->retrieve_jwt( $body, 'id' );
+		} catch ( Exception $exception ) {
+			error_log( $exception->getMessage() );
 
-        $user_id = email_exists( $jwt['email'] );
+			return;
+		}
 
-        if ( $user_id ) {
-            if ( ! User::is_inncognito( $user_id ) ) {
-                User::inncognitize( $user_id );
-            }
+		$user_id = email_exists( $jwt['email'] );
 
-            if ( isset( $jwt['cognito:username'] ) ) {
-                User::innconnect( $user_id, $jwt['cognito:username'] );
-            }
-        } elseif ( $plugin->allow_registration() ) {
-            $user_id = User::create_from_jwt( $jwt );
+		if ( $user_id ) {
+			if ( ! User::is_inncognito( $user_id ) ) {
+				User::inncognitize( $user_id );
+			}
 
-            if ( is_wp_error( $user_id ) ) {
-                Helpers::log_wp_error( $user_id );
+			if ( isset( $jwt['cognito:username'] ) ) {
+				User::innconnect( $user_id, $jwt['cognito:username'] );
+			}
+		} elseif ( $plugin->allow_registration() ) {
+			$user_id = User::create_from_jwt( $jwt );
 
-                return;
-            }
-        } else {
-            Helpers::error_die( __( 'Registration is disabled.', 'inncognito' ) );
-        }
+			if ( is_wp_error( $user_id ) ) {
+				Helpers::log_wp_error( $user_id );
 
-        $is_forced = $plugin->use_force_cognito( false );
-        $user = User::no_password_sign_in( $jwt['email'] );
-        $plugin->use_force_cognito( $is_forced );
+				return;
+			}
+		} else {
+			Helpers::error_die( __( 'Registration is disabled.', 'inncognito' ) );
+		}
 
-        if ( is_wp_error( $user ) ) {
-            Helpers::log_wp_error( $user );
+		$is_forced = $plugin->use_force_cognito( false );
+		$user      = User::no_password_sign_in( $jwt['email'] );
+		$plugin->use_force_cognito( $is_forced );
 
-            return;
-        }
+		if ( is_wp_error( $user ) ) {
+			Helpers::log_wp_error( $user );
 
-        $this->redirect( $user->ID, $state );
-    }
+			return;
+		}
 
-    /**
-     * @param Plugin $plugin
-     * @param array  $body
-     * @param State  $state
-     * @return void
-     */
-    public function token( Plugin $plugin, array $body, State $state ) : void
-    {
-        if ( ! is_user_logged_in() ) {
-            return;
-        }
+		$this->redirect( $user->ID, $state );
+	}
 
-        $user_id = get_current_user_id();
+	/**
+	 * @param Plugin $plugin
+	 * @param array  $body
+	 * @param State  $state
+	 * @return void
+	 */
+	public function token( Plugin $plugin, array $body, State $state ) : void {
+		if ( ! is_user_logged_in() ) {
+			return;
+		}
 
-        if ( ! User::is_inncognito( $user_id ) ) {
-            return;
-        }
+		$user_id = get_current_user_id();
 
-        try {
-            $jwt = $plugin->retrieve_jwt( $body, 'access' );
-        } catch ( Exception $exception ) {
-            error_log( $exception->getMessage() );
+		if ( ! User::is_inncognito( $user_id ) ) {
+			return;
+		}
 
-            return;
-        }
+		try {
+			$jwt = $plugin->retrieve_jwt( $body, 'access' );
+		} catch ( Exception $exception ) {
+			error_log( $exception->getMessage() );
 
-        if ( $jwt['username'] != User::get_innconnection( $user_id ) ) {
-            Helpers::error_die( __( 'Invalid user. Please check username as it does not match.', 'inncognito' ) );
-        }
+			return;
+		}
 
-        User::update_token( $user_id, $body['access_token'], $jwt['exp'] );
+		if ( $jwt['username'] != User::get_innconnection( $user_id ) ) {
+			Helpers::error_die( __( 'Invalid user. Please check username as it does not match.', 'inncognito' ) );
+		}
 
-        $this->redirect( $user_id, $state );
-    }
+		User::update_token( $user_id, $body['access_token'], $jwt['exp'] );
 
-    /**
-     * @param int   $user_id
-     * @param State $state
-     * @return void
-     */
-    private function redirect( int $user_id, State $state ) : void
-    {
-        if (
-            null !== ( $redirect_to = $state->get_redirect_to() ) &&
-            ! in_array( $redirect_to, [
-                'wp-admin/',
-                admin_url(),
-            ], true )
-        ) {
-            wp_safe_redirect( $redirect_to );
-            exit;
-        }
+		$this->redirect( $user_id, $state );
+	}
 
-        wp_redirect( User::admin_url( $user_id ) );
-        exit;
-    }
+	/**
+	 * @param int   $user_id
+	 * @param State $state
+	 * @return void
+	 */
+	private function redirect( int $user_id, State $state ) : void {
+		if (
+			null !== ( $redirect_to = $state->get_redirect_to() ) &&
+			! in_array(
+				$redirect_to,
+				[
+					'wp-admin/',
+					admin_url(),
+				],
+				true
+			)
+		) {
+			wp_safe_redirect( $redirect_to );
+			exit;
+		}
+
+		wp_redirect( User::admin_url( $user_id ) );
+		exit;
+	}
 }

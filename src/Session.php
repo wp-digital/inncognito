@@ -4,124 +4,118 @@ namespace Innocode\Cognito;
 
 use WP_Error;
 
-final class Session
-{
-    const TTL = 15 * MINUTE_IN_SECONDS;
-    const KEY_LENGTH = 32;
+final class Session {
 
-    /**
-     * @var string
-     */
-    private $cookie_name;
-    /**
-     * @var string
-     */
-    private $cookie_path;
+	const TTL        = 15 * MINUTE_IN_SECONDS;
+	const KEY_LENGTH = 32;
 
-    /**
-     * @param string $cookie_name
-     * @return void
-     */
-    public function set_cookie_name( string $cookie_name ) : void
-    {
-        $this->cookie_name = $cookie_name . ( defined( 'COOKIEHASH' ) ? '_' . COOKIEHASH : '' );
-    }
+	/**
+	 * @var string
+	 */
+	private $cookie_name;
+	/**
+	 * @var string
+	 */
+	private $cookie_path;
 
-    /**
-     * @return string
-     */
-    public function get_cookie_name() : string
-    {
-        return $this->cookie_name;
-    }
+	/**
+	 * @param string $cookie_name
+	 * @return void
+	 */
+	public function set_cookie_name( string $cookie_name ) : void {
+		$this->cookie_name = $cookie_name . ( defined( 'COOKIEHASH' ) ? '_' . COOKIEHASH : '' );
+	}
 
-    /**
-     * @param string $cookie_path
-     * @return void
-     */
-    public function set_cookie_path( string $cookie_path ) : void
-    {
-        $this->cookie_path = preg_replace( '|https?://[^/]+|i', '', get_option( 'home' ) ) . $cookie_path;
-    }
+	/**
+	 * @return string
+	 */
+	public function get_cookie_name() : string {
+		return $this->cookie_name;
+	}
 
-    /**
-     * @return string
-     */
-    public function get_cookie_path() : string
-    {
-        return $this->cookie_path;
-    }
+	/**
+	 * @param string $cookie_path
+	 * @return void
+	 */
+	public function set_cookie_path( string $cookie_path ) : void {
+		$this->cookie_path = preg_replace( '|https?://[^/]+|i', '', get_option( 'home' ) ) . $cookie_path;
+	}
 
-    /**
-     * @param State $state
-     * @return string|null
-     */
-    public function start( State $state ) : ?string
-    {
-        $state->set_expiration( time() + Session::TTL );
-        $state->set_key( wp_generate_password( Session::KEY_LENGTH, false ) );
+	/**
+	 * @return string
+	 */
+	public function get_cookie_path() : string {
+		return $this->cookie_path;
+	}
 
-        $token = (string) $state;
+	/**
+	 * @param State $state
+	 * @return string|null
+	 */
+	public function start( State $state ) : ?string {
+		$state->set_expiration( time() + self::TTL );
+		$state->set_key( wp_generate_password( self::KEY_LENGTH, false ) );
 
-        if ( ! $token ) {
-            return null;
-        }
+		$token = (string) $state;
 
-        $nonce = Nonce::create( $token );
+		if ( ! $token ) {
+			return null;
+		}
 
-        $this->set_cookie( $nonce );
+		$nonce = Nonce::create( $token );
 
-        return $state->get_key();
-    }
+		$this->set_cookie( $nonce );
 
-    /**
-     * @param string $key
-     * @return State|WP_Error
-     */
-    public function stop( string $key )
-    {
-        $cookie_name = $this->get_cookie_name();
+		return $state->get_key();
+	}
 
-        if ( ! isset( $_COOKIE[ $cookie_name ] ) ) {
-            return new WP_Error( 'inncognito_empty_session', __( 'Invalid session. Cookies may be blocked or not supported.', 'inncognito' ) );
-        }
+	/**
+	 * @param string $key
+	 * @return State|WP_Error
+	 */
+	public function stop( string $key ) {
+		$cookie_name = $this->get_cookie_name();
 
-        $cookie = $_COOKIE[ $cookie_name ];
+		if ( ! isset( $_COOKIE[ $cookie_name ] ) ) {
+			return new WP_Error( 'inncognito_empty_session', __( 'Invalid session. Cookies may be blocked or not supported.', 'inncognito' ) );
+		}
 
-        $this->unset_cookie();
+		$cookie = $_COOKIE[ $cookie_name ];
 
-        if ( null === ( $token = Nonce::verify( $cookie ) ) ) {
-            return new WP_Error( 'inncognito_malformed_session', __( 'Malformed session.', 'inncognito' ) );
-        }
+		$this->unset_cookie();
 
-        $state = State::decode( $token, $key );
+		$token = Nonce::verify( $cookie );
 
-        if ( is_wp_error( $state ) ) {
-            return $state;
-        }
+		if ( null === $token ) {
+			return new WP_Error( 'inncognito_malformed_session', __( 'Malformed session.', 'inncognito' ) );
+		}
 
-        if ( $state->get_expiration() < time() ) {
-            return new WP_Error( 'inncognito_expired_session', __( 'Expired session.', 'inncognito' ) );
-        }
+		$state = State::decode( $token, $key );
 
-        return $state;
-    }
+		if ( is_wp_error( $state ) ) {
+			return $state;
+		}
 
-    /**
-     * @param string $value
-     * @param int    $expires
-     * @return void
-     */
-    private function set_cookie( string $value, int $expires = 0 ) : void
-    {
-        setcookie( $this->get_cookie_name(), $value, $expires, $this->get_cookie_path(), COOKIE_DOMAIN, is_ssl(), true );
-    }
+		if ( $state->get_expiration() < time() ) {
+			return new WP_Error( 'inncognito_expired_session', __( 'Expired session.', 'inncognito' ) );
+		}
 
-    /**
-     * @return void
-     */
-    private function unset_cookie() : void
-    {
-        $this->set_cookie( ' ', time() - YEAR_IN_SECONDS );
-    }
+		return $state;
+	}
+
+	/**
+	 * @param string $value
+	 * @param int    $expires
+	 * @return void
+	 */
+	private function set_cookie( string $value, int $expires = 0 ) : void {
+		setcookie( $this->get_cookie_name(), $value, $expires, $this->get_cookie_path(), COOKIE_DOMAIN, is_ssl(), true );
+	}
+
+	/**
+	 * @return void
+	 */
+	private function unset_cookie() : void {
+		$this->set_cookie( ' ', time() - YEAR_IN_SECONDS );
+	}
 }
