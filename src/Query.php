@@ -102,7 +102,9 @@ class Query
             $redirect_to = rawurlencode( $redirect_to );
         }
 
-        return add_query_arg( 'redirect_to', $redirect_to, home_url( $this->path( $value ) ) );
+        $url = rtrim( home_url(), '/' ) . $this->path( $value );
+
+        return add_query_arg( 'redirect_to', $redirect_to, $url );
     }
 
     /**

@@ -29,6 +29,7 @@ class Integration implements IntegrationInterface
         $this->plugin = $plugin;
 
         add_filter( 'pll_modify_rewrite_rule', [ $this, 'pll_modify_rewrite_rule' ], 10, 3 );
+        add_filter( 'pll_home_url_white_list', [ $this, 'pll_home_url_white_list' ] );
     }
 
     /**
@@ -46,5 +47,16 @@ class Integration implements IntegrationInterface
         list( $regex ) = array_keys( $rule );
 
         return $regex != "{$this->get_plugin()->get_query()->get_endpoint()}(/(.*))?/?$";
+    }
+
+    /**
+     * @param array $args
+     * @return array
+     */
+    public function pll_home_url_white_list( array $args ) : array
+    {
+        $args[] = [ 'file' => dirname( INNCOGNITO_FILE ) ];
+
+        return $args;
     }
 }
