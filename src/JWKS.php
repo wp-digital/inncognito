@@ -52,7 +52,7 @@ class JWKS {
 	}
 
 	/**
-	 * @return array|WP_Error
+	 * @return array|\WP_Error
 	 */
 	public function download() {
 		return wp_remote_get( "{$this->iss()}/.well-known/jwks.json" );

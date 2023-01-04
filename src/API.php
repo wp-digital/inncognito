@@ -57,7 +57,7 @@ class API {
 	 * @return string
 	 */
 	public function get_authorization_header() : string {
-		return 'Basic ' . base64_encode( "{$this->get_client_id()}:{$this->get_client_secret()}" );
+		return 'Basic ' . base64_encode( "{$this->get_client_id()}:{$this->get_client_secret()}" ); // phpcs:ignore: WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 	}
 
 	/**

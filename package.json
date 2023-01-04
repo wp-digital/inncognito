@@ -1,5 +1,5 @@
 {
-  "name": "wp-inncognito",
+  "name": "inncognito",
   "version": "1.7.0",
   "description": "Login and Registration with user's AWS Cognito account.",
   "scripts": {

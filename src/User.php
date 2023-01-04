@@ -8,7 +8,7 @@ final class User {
 
 	/**
 	 * @param array $data
-	 * @return int|WP_Error
+	 * @return int|\WP_Error
 	 */
 	public static function create_from_jwt( array $data ) {
 		$username = '';
@@ -92,7 +92,7 @@ final class User {
 
 	/**
 	 * @param string $username
-	 * @return WP_Error|WP_User
+	 * @return \WP_Error|WP_User
 	 */
 	public static function no_password_sign_in( string $username ) {
 		$authenticate = function ( $user, string $username ) {

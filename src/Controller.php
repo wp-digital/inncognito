@@ -16,7 +16,7 @@ final class Controller {
 
 		if ( $query->is_root() ) {
 			if ( is_user_logged_in() ) {
-				wp_redirect( User::admin_url( get_current_user_id() ) );
+				wp_redirect( User::admin_url( get_current_user_id() ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
 				exit;
 			}
 
@@ -46,7 +46,7 @@ final class Controller {
 			return;
 		}
 
-		wp_redirect( $plugin->api_url( $key, $scope ) );
+		wp_redirect( $plugin->api_url( $key, $scope ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
 		exit;
 	}
 
@@ -58,7 +58,7 @@ final class Controller {
 	 */
 	public function login( Plugin $plugin, array $body, State $state ) : void {
 		if ( is_user_logged_in() ) {
-			wp_redirect( User::admin_url( get_current_user_id() ) );
+			wp_redirect( User::admin_url( get_current_user_id() ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
 			exit;
 		}
 
@@ -164,7 +164,7 @@ final class Controller {
 			exit;
 		}
 
-		wp_redirect( User::admin_url( $user_id ) );
+		wp_redirect( User::admin_url( $user_id ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
 		exit;
 	}
 }

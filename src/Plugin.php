@@ -318,7 +318,7 @@ final class Plugin {
 
 		if ( $action === '' ) {
 			$controller->login( $this, $body, $state );
-		} elseif ( $action == 'token' ) {
+		} elseif ( $action === 'token' ) {
 			$controller->token( $this, $body, $state );
 		}
 	}
@@ -327,7 +327,7 @@ final class Plugin {
 	 * @param array  $body
 	 * @param string $use
 	 * @return array
-	 * @throws Exception
+	 * @throws Exception If required parameters missing.
 	 */
 	public function retrieve_jwt( array $body, string $use ) : array {
 		$key = "{$use}_token";
@@ -353,28 +353,28 @@ final class Plugin {
 	 * @param array  $jwt
 	 * @param string $token_use
 	 * @return array
-	 * @throws Exception
+	 * @throws Exception If JSON web token verification failed.
 	 */
 	public function verify_jwt_claims( array $jwt, string $token_use ) : array {
-		if ( $token_use == 'id' && (
-			! isset( $jwt['aud'] ) || $jwt['aud'] != $this->get_api()->get_client_id()
+		if ( $token_use === 'id' && (
+			! isset( $jwt['aud'] ) || $jwt['aud'] !== $this->get_api()->get_client_id()
 		) ) {
 			throw new Exception( 'Token was not issued for this audience.' );
-		} elseif ( $token_use == 'access' && (
-			! isset( $jwt['client_id'] ) || $jwt['client_id'] != $this->get_api()->get_client_id()
+		} elseif ( $token_use === 'access' && (
+			! isset( $jwt['client_id'] ) || $jwt['client_id'] !== $this->get_api()->get_client_id()
 		) ) {
 			throw new Exception( 'Token was not issued for this client id.' );
 		}
 
-		if ( ! isset( $jwt['iss'] ) || $jwt['iss'] != $this->get_jwks()->iss() ) {
+		if ( ! isset( $jwt['iss'] ) || $jwt['iss'] !== $this->get_jwks()->iss() ) {
 			throw new Exception( 'Token was not issued by this issuer.' );
 		}
 
-		if ( ! isset( $jwt['token_use'] ) || $jwt['token_use'] != $token_use ) {
+		if ( ! isset( $jwt['token_use'] ) || $jwt['token_use'] !== $token_use ) {
 			throw new Exception( 'Token was not issued for this use case.' );
 		}
 
-		if ( $token_use == 'id' ) {
+		if ( $token_use === 'id' ) {
 			if ( ! isset( $jwt['email'] ) || ! is_email( $jwt['email'] ) ) {
 				throw new Exception( 'Token has an invalid email.' );
 			}
@@ -398,14 +398,15 @@ final class Plugin {
 		}
 
 		if ( User::is_inncognito( $user->ID ) ) {
-			$redirect_to   = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( $_REQUEST['redirect_to'] ) : null;
-			$interim_login = isset( $_REQUEST['interim-login'] );
+			$redirect_to   = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( $_REQUEST['redirect_to'] ) : null; // phpcs:ignore Innocode.Security.NonceVerification.Recommended
+			$interim_login = isset( $_REQUEST['interim-login'] ); // phpcs:ignore Innocode.Security.NonceVerification.Recommended
 			$message       = sprintf(
+				/* translators: %s: Username. */
 				__( '<strong>Error</strong>: Sorry, %s cannot use the regular login form.', 'inncognito' ),
 				"<strong>$username</strong>"
 			);
-			$message      .= '<br>';
-			$message      .= sprintf(
+			$message .= '<br>';
+			$message .= sprintf(
 				'<a href="%s" %s>%s</a>',
 				$this->login_url( $redirect_to ),
 				$interim_login ? 'target="_blank"' : '',
@@ -483,13 +484,13 @@ final class Plugin {
 			! IS_PROFILE_PAGE ||
 			! $update ||
 			! User::is_inncognito( $user->ID ) ||
-			empty( $_POST['inncognito_mfa_user_code'] )
+			empty( $_POST['inncognito_mfa_user_code'] ) // phpcs:ignore Innocode.Security.NonceVerification.Missing
 		) {
 			return;
 		}
 
 		$code = filter_var(
-			$_POST['inncognito_mfa_user_code'],
+			$_POST['inncognito_mfa_user_code'], // phpcs:ignore Innocode.Security.NonceVerification.Missing
 			FILTER_VALIDATE_REGEXP,
 			[
 				'options' => [
@@ -524,8 +525,8 @@ final class Plugin {
 			$result = $this->get_cognito_identity_provider_client()->verifySoftwareToken(
 				[
 					'AccessToken'        => $token,
-					'FriendlyDeviceName' => isset( $_POST['inncognito_mfa_user_device'] )
-						? sanitize_text_field( $_POST['inncognito_mfa_user_device'] )
+					'FriendlyDeviceName' => isset( $_POST['inncognito_mfa_user_device'] ) // phpcs:ignore Innocode.Security.NonceVerification.Missing
+						? sanitize_text_field( $_POST['inncognito_mfa_user_device'] ) // phpcs:ignore Innocode.Security.NonceVerification.Missing
 						: null,
 					'UserCode'           => $code,
 				]
@@ -544,7 +545,7 @@ final class Plugin {
 			return;
 		}
 
-		if ( $result->get( 'Status' ) == 'ERROR' ) {
+		if ( $result->get( 'Status' ) === 'ERROR' ) {
 			$errors->add(
 				'inncognito_mfa_user_code',
 				__( '<strong>Error</strong>: Something went wrong.', 'inncognito' ),
@@ -558,7 +559,7 @@ final class Plugin {
 	 * @return void
 	 */
 	public function enqueue_scripts( string $hook_suffix ) : void {
-		if ( 'profile.php' != $hook_suffix ) {
+		if ( 'profile.php' !== $hook_suffix ) {
 			return;
 		}
 

@@ -16,8 +16,9 @@ $token         = Innocode\Cognito\User::get_token( $user_id ); ?>
 						_e( '<strong>Warning:</strong> this action immediately disassociates the existing device, if any, from your account.', 'inncognito' );
 					} else {
 						printf(
-							__( '<a href="%s">First you need to obtain a new access token from Cognito</a>.', 'inncognito' ),
-							inncognito()->token_url( self_admin_url( 'profile.php#inncognito' ) )
+							'<a href="%s">%s</a>',
+							esc_url( inncognito()->token_url( self_admin_url( 'profile.php#inncognito' ) ) ),
+							__( 'First you need to obtain a new access token from Cognito.', 'inncognito' )
 						);
 					}
 					?>

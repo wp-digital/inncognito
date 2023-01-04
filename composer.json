@@ -1,5 +1,5 @@
 {
-  "name": "innocode-digital/wp-inncognito",
+  "name": "innocode-digital/inncognito",
   "version": "1.7.0",
   "type": "wordpress-muplugin",
   "description": "Login and Registration with user's AWS Cognito account.",
